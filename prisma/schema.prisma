@@ -1,0 +1,94 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// ======================
+/// ENUMS
+/// ======================
+enum Role {
+  SUPERADMIN
+  PDD
+}
+
+enum PostType {
+  ACTIVITY
+  ARTICLE
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// ======================
+/// MODELS
+/// ======================
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(PDD)
+  isActive     Boolean  @default(true) @map("is_active")
+
+  posts        Post[]
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model SiteSetting {
+  /// Model key-value (paling fleksibel untuk setting dinamis)
+  /// Contoh key: "site_name", "logo_url", "favicon_url", "hero_title", "instagram_url"
+  key        String   @id
+  value      String
+
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+model Post {
+  id            String     @id @default(uuid()) @db.Uuid
+  type          PostType
+  title         String
+  slug          String     @unique
+  excerpt       String?    @db.Text
+  content       String     @db.Text
+
+  coverImageUrl String?    @map("cover_image_url")
+  /// Opsional: simpan array URL gambar dalam JSON
+  gallery       Json?
+
+  status        PostStatus @default(DRAFT)
+  publishedAt   DateTime?  @map("published_at")
+
+  authorId      String     @db.Uuid @map("author_id")
+  author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  @@index([type, status])
+  @@index([publishedAt])
+  @@map("posts")
+}
+
+model Faq {
+  id        String   @id @default(uuid()) @db.Uuid
+  question  String
+  answer    String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("faqs")
+}
