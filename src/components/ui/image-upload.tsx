@@ -47,6 +47,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       const res = await fetch("/api/uploads/cloudinary", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
       const data = (await res.json()) as UploadApiResponse;
