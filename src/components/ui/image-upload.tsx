@@ -9,13 +9,14 @@ interface ImageUploadProps {
   value: string;
   onChange: (url: string) => void;
   disabled?: boolean;
+  id?: string;
 }
 
 type UploadApiResponse =
   | { secure_url: string }
   | { error: string };
 
-export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, disabled, id }: ImageUploadProps) {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,6 +89,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       {/* Hidden Input */}
       <input
         type="file"
+        id={id}
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"

@@ -57,6 +57,7 @@ export async function POST(req: Request) {
         cloudinary.uploader.upload(dataURI, {
             folder: process.env.CLOUDINARY_FOLDER || "kkm-web",
             resource_type: "image",
+            async: false, // Force synchronous upload to get the URL immediately
         }, (error, result) => {
             if (error) reject(error);
             else resolve(result);
