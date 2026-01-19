@@ -38,10 +38,13 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       formData.append("file", file);
 
       const url = await uploadImage(formData);
+      console.log("Client received URL from server action:", url);
+      
       if (url) {
           onChange(url);
           toast.success("Image uploaded!");
       } else {
+          console.error("Client received null/undefined/empty string URL");
           throw new Error("No URL returned");
       }
     } catch (error) {

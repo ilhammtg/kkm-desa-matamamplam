@@ -49,7 +49,13 @@ export async function uploadImage(formData: FormData) {
         resource_type: "image",
     });
     
-    console.log("Cloudinary Upload Success:", result.secure_url);
+    console.log("Cloudinary Raw Result:", JSON.stringify(result, null, 2));
+    console.log("Cloudinary Upload Success URL:", result.secure_url);
+    
+    if (!result.secure_url) {
+        throw new Error("Cloudinary did not return a secure_url");
+    }
+
     return result.secure_url;
 
   } catch (error) {
