@@ -3,8 +3,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, Loader2, X } from "lucide-react";
-import Image from "next/image";
-import { uploadImage } from "@/server/actions/image-upload.actions";
 import { toast } from "sonner";
 
 interface ImageUploadProps {
@@ -12,6 +10,10 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   disabled?: boolean;
 }
+
+type UploadApiResponse =
+  | { secure_url: string }
+  | { error: string };
 
 export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
   const [loading, setLoading] = useState(false);
@@ -21,41 +23,52 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Basic Validation
+    // Basic validation
     if (!file.type.startsWith("image/")) {
-        toast.error("File type not supported. Please upload an image.");
-        return;
+      toast.error("File type not supported. Please upload an image.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error("Ukuran file terlalu besar. Maksimal 5MB.");
-        return;
+    // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ukuran file terlalu besar. Maksimal 5MB.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
     }
 
     try {
       setLoading(true);
+
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await uploadImage(formData);
-      console.log("Client received response from server action:", response);
-      
-      if (response.success && response.url) {
-          onChange(response.url);
-          toast.success("Image uploaded!");
-      } else {
-          console.error("Upload failed:", response.error);
-          throw new Error(response.error || "No URL returned");
+      // IMPORTANT: Upload via API route (client-safe)
+      const res = await fetch("/api/uploads/cloudinary", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = (await res.json()) as UploadApiResponse;
+
+      if (!res.ok) {
+        const msg = "error" in data ? data.error : "Upload failed";
+        throw new Error(msg);
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Upload failed. Please try again.");
+
+      if (!("secure_url" in data) || !data.secure_url) {
+        throw new Error("No secure_url returned from server");
+      }
+
+      onChange(data.secure_url);
+      toast.success("Image uploaded!");
+    } catch (err: any) {
+      console.error("Upload failed:", err);
+      toast.error(err?.message || "Upload failed. Please try again.");
     } finally {
       setLoading(false);
-      // Reset input so same file can be selected again if needed
-      if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-      }
+      // reset input so the same file can be chosen again
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -84,6 +97,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       {/* Preview or Upload Button */}
       {value ? (
         <div className="relative h-[200px] w-[300px] overflow-hidden rounded-md border border-input shadow-sm group">
+          {/* pakai <img> biar aman untuk domain cloudinary tanpa config next/image */}
           <img
             src={value}
             alt="Upload preview"
@@ -97,6 +111,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
               className="h-8 w-8 opacity-80 hover:opacity-100"
               onClick={handleRemove}
               disabled={disabled || loading}
+              aria-label="Remove image"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -121,20 +136,24 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
         </Button>
       )}
 
-      {/* Optional: Show URL or Change button if needed next to preview */}
+      {/* Change button */}
       {value && (
-         <div className="flex flex-col gap-2">
-            <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={handlePick}
-                disabled={disabled || loading}
-            >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImagePlus className="h-4 w-4 mr-2" />}
-                Change Image
-            </Button>
-         </div>
+        <div className="flex flex-col gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handlePick}
+            disabled={disabled || loading}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <ImagePlus className="h-4 w-4 mr-2" />
+            )}
+            Change Image
+          </Button>
+        </div>
       )}
     </div>
   );
