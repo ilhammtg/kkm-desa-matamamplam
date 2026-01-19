@@ -17,6 +17,11 @@ export default withAuth(
       if (path === "/") {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
+
+      // Redirect TREASURER from main dashboard to finance dashboard
+      if (path === "/dashboard" && token?.role === "TREASURER") {
+        return NextResponse.redirect(new URL("/dashboard/finance/overview", req.url));
+      }
     }
 
     // 2. Unauthenticated protection is handled by 'authorized' callback,

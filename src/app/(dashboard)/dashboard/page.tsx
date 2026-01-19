@@ -17,6 +17,10 @@ export default async function DashboardPage() {
     return <PDDDashboard user={session.user} />;
   }
 
+  if (session.user.role === "TREASURER") {
+      redirect("/dashboard/finance/overview");
+  }
+
   // --- SUPERADMIN VIEW (Stats) ---
   const stats = await getDashboardStats();
 
