@@ -10,17 +10,19 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export async function uploadImage(formData: FormData) {
+export const runtime = 'nodejs';
+
+export async function uploadImage(formData: FormData): Promise<{ success: boolean; url?: string; error?: string }> {
   // 1. Auth Check
   const session = await getServerAuthSession();
   if (!session) {
-    throw new Error("Unauthorized");
+    return { success: false, error: "Unauthorized" };
   }
 
   // 2. Get File
   const file = formData.get("file") as File;
   if (!file) {
-    throw new Error("No file uploaded");
+    return { success: false, error: "No file uploaded" };
   }
 
   // 3. Convert to Buffer
@@ -36,7 +38,7 @@ export async function uploadImage(formData: FormData) {
       process.env.CLOUDINARY_API_SECRET;
 
     if (!hasCloudinary) {
-      throw new Error("Cloudinary configuration is missing");
+      return { success: false, error: "Cloudinary configuration is missing" };
     }
 
     // --- Cloudinary Upload ---
@@ -49,17 +51,18 @@ export async function uploadImage(formData: FormData) {
         resource_type: "image",
     });
     
-    console.log("Cloudinary Raw Result:", JSON.stringify(result, null, 2));
+    // Removed JSON.stringify to avoid potential circular error or log bloat
     console.log("Cloudinary Upload Success URL:", result.secure_url);
     
     if (!result.secure_url) {
-        throw new Error("Cloudinary did not return a secure_url");
+        return { success: false, error: "Cloudinary did not return a secure_url" };
     }
 
-    return result.secure_url;
+    return { success: true, url: result.secure_url };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Upload Error:", error);
-    throw new Error("Upload failed");
+    // Return the actual error message safely
+    return { success: false, error: error.message || "Upload failed" };
   }
 }

@@ -37,15 +37,15 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const url = await uploadImage(formData);
-      console.log("Client received URL from server action:", url);
+      const response = await uploadImage(formData);
+      console.log("Client received response from server action:", response);
       
-      if (url) {
-          onChange(url);
+      if (response.success && response.url) {
+          onChange(response.url);
           toast.success("Image uploaded!");
       } else {
-          console.error("Client received null/undefined/empty string URL");
-          throw new Error("No URL returned");
+          console.error("Upload failed:", response.error);
+          throw new Error(response.error || "No URL returned");
       }
     } catch (error) {
       console.error(error);
