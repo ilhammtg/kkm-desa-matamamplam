@@ -1,10 +1,5 @@
-"use server";
-
 import { v2 as cloudinary } from "cloudinary";
 import { getServerAuthSession } from "@/server/auth/session";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { cwd } from "process";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -38,40 +33,22 @@ export async function uploadImage(formData: FormData) {
       process.env.CLOUDINARY_API_KEY && 
       process.env.CLOUDINARY_API_SECRET;
 
-    if (hasCloudinary) {
-       // --- Cloudinary Upload ---
-        const base64Data = buffer.toString("base64");
-        const fileType = file.type || "image/png"; 
-        const dataURI = `data:${fileType};base64,${base64Data}`;
-
-        const result = await cloudinary.uploader.upload(dataURI, {
-            folder: process.env.CLOUDINARY_FOLDER || "kkm-web", 
-            resource_type: "image",
-            async: false,
-        });
-        
-        console.log("Cloudinary Upload Success:", result.secure_url);
-        return result.secure_url;
-
-    } else {
-        // --- Local Filesystem Fallback ---
-        // Ensure directory exists
-        const uploadDir = join(cwd(), "public", "uploads");
-        await mkdir(uploadDir, { recursive: true });
-
-        // Generate unique filename
-        const timestamp = Date.now();
-        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-        const filename = `${timestamp}-${safeName}`;
-        const filepath = join(uploadDir, filename);
-
-        // Write file
-        await writeFile(filepath, buffer);
-
-        const localUrl = `/uploads/${filename}`;
-        console.log("Local Upload Success:", localUrl);
-        return localUrl;
+    if (!hasCloudinary) {
+      throw new Error("Cloudinary configuration is missing");
     }
+
+    // --- Cloudinary Upload ---
+    const base64Data = buffer.toString("base64");
+    const fileType = file.type || "image/png"; 
+    const dataURI = `data:${fileType};base64,${base64Data}`;
+
+    const result = await cloudinary.uploader.upload(dataURI, {
+        folder: process.env.CLOUDINARY_FOLDER || "kkm-web", 
+        resource_type: "image",
+    });
+    
+    console.log("Cloudinary Upload Success:", result.secure_url);
+    return result.secure_url;
 
   } catch (error) {
     console.error("Upload Error:", error);
