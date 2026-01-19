@@ -45,7 +45,15 @@ const DEFAULT_PROGRAMS = JSON.stringify([
 ]);
 
 export async function getSiteSettings() {
-  const settings = await prisma.siteSetting.findMany();
+  let settings: { key: string; value: string }[] = [];
+  
+  try {
+    settings = await prisma.siteSetting.findMany();
+  } catch (error) {
+    console.error("Failed to fetch site settings (using defaults):", error);
+    // Continue with empty settings, triggering defaults below
+  }
+
   // Transform to object for easier consumption
   const settingsMap = settings.reduce((acc, curr) => {
     acc[curr.key] = curr.value;
@@ -83,6 +91,20 @@ export async function updateSiteSettings(data: Record<string, string>) {
 }
 
 export async function getSocialMedias() {
-  return prisma.socialMedia.findMany();
+  try {
+    return await prisma.socialMedia.findMany();
+  } catch (error) {
+    console.error("Failed to fetch social medias:", error);
+    return [];
+  }
+}
+
+export async function getAboutPage() {
+  try {
+    return await prisma.aboutPage.findFirst();
+  } catch (error) {
+    console.error("Failed to fetch about page:", error);
+    return null;
+  }
 }
 

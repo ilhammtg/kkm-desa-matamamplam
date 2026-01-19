@@ -1,3 +1,5 @@
+"use server";
+
 import { v2 as cloudinary } from "cloudinary";
 import { getServerAuthSession } from "@/server/auth/session";
 

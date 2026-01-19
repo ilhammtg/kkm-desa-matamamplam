@@ -21,22 +21,31 @@ export async function getPosts(page = 1, limit = 10, search = "", status?: PostS
     ],
   };
 
-  const [posts, total] = await Promise.all([
-    prisma.post.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { updatedAt: "desc" },
-      include: { author: { select: { name: true, email: true } } },
-    }),
-    prisma.post.count({ where }),
-  ]);
+  try {
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { updatedAt: "desc" },
+        include: { author: { select: { name: true, email: true } } },
+      }),
+      prisma.post.count({ where }),
+    ]);
 
-  return {
-    posts,
-    total,
-    totalPages: Math.ceil(total / limit),
-  };
+    return {
+      posts,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  } catch (error) {
+    console.error("Failed to fetch posts:", error);
+    return {
+      posts: [],
+      total: 0,
+      totalPages: 0,
+    };
+  }
 }
 
 // Get single post by ID

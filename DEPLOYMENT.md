@@ -60,7 +60,7 @@ In the **"Environment Variables"** section before clicking Deploy, add the follo
 
 Once the build is successful, you need to push your database schema to the production database.
 
-1.  Since we cannot run `npx prisma db push` directly on the Vercel server console easily, it is best to run it **locally** pointing to the **production database**.
+1.  Since we cannot run `npx prisma db push`  on the Vercel server console easily, it is best to run it **locally** pointing to the **production database**.
 
 2.  **Temporarily** change your local `.env` file:
     ```env

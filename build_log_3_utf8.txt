@@ -1,0 +1,160 @@
+﻿
+> kkm-mata-mamplam@0.1.0 build
+> prisma generate && next build
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+
+Γ£ö Generated Prisma Client (v5.22.0) to .\node_modules\@prisma\client in 314ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
+
+Γû▓ Next.js 16.1.3 (Turbopack)
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  ┬╖ serverActions
+
+node.exe : ΓÜá The 
+"middleware" file 
+convention is 
+deprecated. Please 
+use "proxy" instead. 
+Learn more: https://n
+extjs.org/docs/messag
+es/middleware-to-prox
+y
+At C:\Program Files\n
+odejs\npm.ps1:29 
+char:3
++   & $NODE_EXE 
+$NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (ΓÜá The   
+  "middle...lewar    
+e-to-proxy:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 15.1s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/22) ...
+prisma:error 
+Invalid `prisma.siteSetting.findMany()` invocation:
+
+
+Can't reach database server at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.siteSetting.findMany()` invocation:
+
+
+Can't reach database server at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.siteSetting.findMany()` invocation:
+
+
+Can't reach database server at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.siteSetting.findMany()` invocation:
+
+
+Can't reach database server at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.siteSetting.findMany()` invocation:
+
+
+Can't reach database server at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.siteSetting.findMany()` invocation:
+
+
+Can't reach database server at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.siteSetting.findMany()` invocation:
+
+
+Can't reach database server at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`.
+prisma:error 
+Invalid `prisma.siteSetting.findMany()` invocation:
+
+
+Can't reach database server at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-dawn-king-a189temj-pooler.ap-southeast-1.aws.neon.tech:5432`.
+Error occurred 
+prerendering page 
+"/_not-found". Read 
+more: https://nextjs.
+org/docs/messages/pre
+render-error
+Error [PrismaClientIn
+itializationError]: 
+Invalid `prisma.siteS
+etting.findMany()` 
+invocation:
+
+
+Can't reach database 
+server at `ep-dawn-ki
+ng-a189temj-pooler.ap
+-southeast-1.aws.neon
+.tech:5432`
+
+Please make sure 
+your database server 
+is running at `ep-daw
+n-king-a189temj-poole
+r.ap-southeast-1.aws.
+neon.tech:5432`.
+    at async i (D:\CO
+DING\JAVASCRIPT\kkm-m
+ata-mamplam\.next\ser
+ver\chunks\ssr\[root-
+of-the-server]__58fb0
+52a._.js:1:3338)
+    at async 
+Module.i (D:\CODING\J
+AVASCRIPT\kkm-mata-ma
+mplam\.next\server\ch
+unks\ssr\[root-of-the
+-server]__58fb052a._.
+js:1:6919) {
+  clientVersion: 
+'5.22.0',
+  errorCode: 
+undefined,
+  digest: 
+'2990894907'
+}
+Export encountered 
+an error on 
+/_not-found/page: 
+/_not-found, exiting 
+the build.
+Γ¿» Next.js build 
+worker exited with 
+code: 1 and signal: 
+null

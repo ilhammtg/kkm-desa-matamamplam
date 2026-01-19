@@ -112,17 +112,22 @@ export async function getPositionsAndDivisions() {
 }
 
 export async function getOrgStructure() {
-  return prisma.division.findMany({
-    include: {
-      positions: {
-        orderBy: { level: "asc" },
-        include: {
-          members: true,
+  try {
+    return await prisma.division.findMany({
+      include: {
+        positions: {
+          orderBy: { level: "asc" },
+          include: {
+            members: true,
+          },
         },
       },
-    },
-    orderBy: {
-        createdAt: "asc"
-    }
-  });
+      orderBy: {
+          createdAt: "asc"
+      }
+    });
+  } catch (error) {
+    console.error("Failed to fetch Org Structure:", error);
+    return [];
+  }
 }

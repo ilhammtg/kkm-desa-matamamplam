@@ -1,4 +1,4 @@
-import { getSiteSettings, getSocialMedias } from "@/server/actions/settings.actions";
+import { getSiteSettings, getSocialMedias, getAboutPage } from "@/server/actions/settings.actions";
 import { getPosts } from "@/server/actions/posts.actions";
 import { getFAQs } from "@/server/actions/faq.actions";
 import { getOrgStructure } from "@/server/actions/member.actions";
@@ -9,9 +9,7 @@ import { AboutSection } from "@/components/landing/AboutSection";
 import { OrgStructureSection } from "@/components/landing/OrgStructureSection";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { PostStatus, PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { PostStatus } from "@prisma/client";
 
 export const revalidate = 60; // Revalidate every minute
 
@@ -22,7 +20,7 @@ export default async function Home() {
   const faqs = await getFAQs();
   const orgData = await getOrgStructure();
 
-  const aboutPage = await prisma.aboutPage.findFirst();
+  const aboutPage = await getAboutPage();
 
   return (
     <main className="min-h-screen flex flex-col">

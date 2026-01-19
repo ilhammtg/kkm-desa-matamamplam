@@ -5,9 +5,14 @@ import { getServerAuthSession } from "@/server/auth/session";
 import { revalidatePath } from "next/cache";
 
 export async function getFAQs() {
-  return await prisma.faq.findMany({
-    orderBy: { createdAt: "asc" },
-  });
+  try {
+    return await prisma.faq.findMany({
+      orderBy: { createdAt: "asc" },
+    });
+  } catch (error) {
+    console.error("Failed to fetch FAQs:", error);
+    return [];
+  }
 }
 
 export async function createFAQ(data: { question: string; answer: string }) {
