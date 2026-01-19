@@ -25,14 +25,27 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        const email = credentials.email.toLowerCase();
+
+        // 1. Check Rate Limit
+        const loginAttempt = await prisma.loginAttempt.findUnique({
+          where: { identifier: email },
+        });
+
+        if (loginAttempt && loginAttempt.lockedUntil && loginAttempt.lockedUntil > new Date()) {
+          throw new Error("Account is temporarily locked. Please try again later.");
+        }
+
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email,
+            email: email,
           },
         });
 
         // Check if user exists and is active
         if (!user || !user.isActive || !user.passwordHash) {
+          // Record failed attempt
+          await recordFailedAttempt(email);
           return null;
         }
 
@@ -42,14 +55,21 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isPasswordValid) {
+          // Record failed attempt
+          await recordFailedAttempt(email);
           return null;
         }
+
+        // Reset failed attempts on success
+        await prisma.loginAttempt.deleteMany({
+          where: { identifier: email },
+        });
 
         return {
           id: user.id,
           name: user.name,
           email: user.email,
-          image: null, // Image field removed from schema
+          image: null,
           role: user.role,
         };
       },
@@ -74,3 +94,38 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+async function recordFailedAttempt(identifier: string) {
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_MINUTES = 15;
+
+  const attempt = await prisma.loginAttempt.findUnique({
+    where: { identifier },
+  });
+
+  if (attempt) {
+    const attempts = attempt.attempts + 1;
+    let lockedUntil = null;
+
+    if (attempts >= MAX_ATTEMPTS) {
+      lockedUntil = new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000);
+    }
+
+    await prisma.loginAttempt.update({
+      where: { identifier },
+      data: {
+        attempts,
+        lastFailed: new Date(),
+        lockedUntil,
+      },
+    });
+  } else {
+    await prisma.loginAttempt.create({
+      data: {
+        identifier,
+        attempts: 1,
+        lastFailed: new Date(),
+      },
+    });
+  }
+}

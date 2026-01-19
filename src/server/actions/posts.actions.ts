@@ -44,12 +44,21 @@ export async function getPost(id: string) {
   return await prisma.post.findUnique({ where: { id } });
 }
 
+// Get single post by Slug
+export async function getPostBySlug(slug: string) {
+  return await prisma.post.findUnique({ 
+    where: { slug },
+    include: { author: { select: { name: true } } } 
+  });
+}
+
 // Create new post
 export async function createPost(data: {
   title: string;
   slug: string;
   content: string;
   excerpt?: string;
+  location?: string;
   type: PostType;
   coverImageUrl?: string;
   status: PostStatus;
@@ -83,6 +92,7 @@ export async function updatePost(
     slug?: string;
     content?: string;
     excerpt?: string;
+    location?: string;
     type?: PostType;
     coverImageUrl?: string;
     status?: PostStatus;
@@ -101,6 +111,10 @@ export async function updatePost(
   });
 
   revalidatePath("/dashboard/posts");
+  revalidatePath("/kegiatan");
+  revalidatePath("/artikel");
+  revalidatePath(`/kegiatan/${post.slug}`);
+  revalidatePath(`/artikel/${post.slug}`);
   return post;
 }
 

@@ -36,7 +36,7 @@ import { Role } from "@prisma/client";
 const userSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email"),
-  role: z.enum(["SUPERADMIN", "PDD"]),
+  role: z.enum(["SUPERADMIN", "PDD", "TREASURER"]),
   password: z.string().optional(), // Required only for creation
 });
 
@@ -171,6 +171,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
                     <SelectContent>
                       <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
                       <SelectItem value="PDD">PDD</SelectItem>
+                      <SelectItem value="TREASURER">Bendahara</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

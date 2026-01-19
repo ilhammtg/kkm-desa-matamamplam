@@ -16,6 +16,11 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+import { AlertCircle } from "lucide-react";
+// Removed missing Alert component import
+
+// ... (keep existing imports)
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,13 +49,17 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        if (result.error.includes("locked")) {
+            setError("Akun terkunci sementara karena terlalu banyak percobaan gagal. Silakan coba lagi dalam 15 menit.");
+        } else {
+            setError("Email atau password salah. Silakan coba lagi.");
+        }
       } else {
         router.push("/dashboard");
         router.refresh();
       }
     } catch (err) {
-      setError("An error occurred");
+      setError("Terjadi kesalahan sistem. Silakan coba lagi nanti.");
     } finally {
       setLoading(false);
     }
@@ -64,6 +73,18 @@ export function LoginForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            
+            {/* Show Error Alert if exists */}
+            {(error || errorParam) && (
+                <div className="bg-destructive/15 p-3 rounded-md flex items-start gap-3 text-destructive text-sm border border-destructive/20">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="flex flex-col gap-1">
+                        <span className="font-semibold">Login Gagal</span>
+                        <p>{error || "Autentikasi gagal. Silakan cek kembali kredensial Anda."}</p>
+                    </div>
+                </div>
+            )}
+
             <FormField
               control={form.control}
               name="email"
@@ -90,8 +111,6 @@ export function LoginForm() {
                 </FormItem>
               )}
             />
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            {errorParam && !error && <p className="text-red-500 text-sm">Authentication failed</p>}
             
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
@@ -100,7 +119,7 @@ export function LoginForm() {
         </Form>
       </CardContent>
       <CardFooter className="justify-center text-sm text-gray-500">
-        Contact administrator for access.
+        Hubungi administrator jika lupa password.
       </CardFooter>
     </Card>
   );

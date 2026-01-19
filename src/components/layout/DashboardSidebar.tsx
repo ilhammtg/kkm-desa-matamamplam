@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, FileText, Users, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Settings, LogOut, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut, useSession } from "next-auth/react";
 
@@ -32,10 +32,22 @@ export function DashboardSidebar() {
       roles: ["SUPERADMIN"],
     },
     {
+      title: "Struktur Organisasi",
+      href: "/dashboard/members",
+      icon: Users,
+      roles: ["SUPERADMIN", "PDD"],
+    },
+    {
       title: "Settings",
       href: "/dashboard/settings",
       icon: Settings,
       roles: ["SUPERADMIN"],
+    },
+    {
+      title: "Keuangan",
+      href: "/dashboard/finance/overview",
+      icon: Wallet,
+      roles: ["TREASURER"],
     },
   ];
 

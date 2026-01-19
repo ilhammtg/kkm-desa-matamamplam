@@ -44,13 +44,15 @@ export function LatestPosts({ posts }: LatestPostsProps) {
               </div>
               <CardHeader className="p-4">
                 <CardTitle className="line-clamp-2 text-lg hover:text-primary transition-colors">
-                    <Link href={`/posts/${post.slug}`}>
+                    <Link href={post.type === "ACTIVITY" ? `/kegiatan/${post.slug}` : `/artikel/${post.slug}`}>
                         {post.title}
                     </Link>
                 </CardTitle>
                 <div className="flex items-center text-sm text-gray-500 mt-2">
                     <Calendar className="mr-1 h-3 w-3" />
-                    {post.publishedAt ? format(new Date(post.publishedAt), "MMMM d, yyyy") : "Draft"}
+                    {post.status === "PUBLISHED" 
+                        ? format(new Date(post.publishedAt || post.createdAt), "MMMM d, yyyy") 
+                        : "Draft"}
                 </div>
               </CardHeader>
               <CardContent className="p-4 pt-0 flex-grow">
@@ -59,7 +61,7 @@ export function LatestPosts({ posts }: LatestPostsProps) {
                 </p>
               </CardContent>
               <CardFooter className="p-4 pt-0">
-                <Link href={`/posts/${post.slug}`} className="text-sm font-medium text-primary hover:underline flex items-center">
+                <Link href={post.type === "ACTIVITY" ? `/kegiatan/${post.slug}` : `/artikel/${post.slug}`} className="text-sm font-medium text-primary hover:underline flex items-center">
                   Baca Selengkapnya <ArrowRight className="ml-1 h-3 w-3" />
                 </Link>
               </CardFooter>

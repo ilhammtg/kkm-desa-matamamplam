@@ -28,7 +28,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
     }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error("File too large. Max 5MB.");
+        toast.error("Ukuran file terlalu besar. Maksimal 5MB.");
         return;
     }
 
@@ -37,9 +37,13 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await uploadImage(formData);
-      onChange(res.url);
-      toast.success("Image uploaded!");
+      const url = await uploadImage(formData);
+      if (url) {
+          onChange(url);
+          toast.success("Image uploaded!");
+      } else {
+          throw new Error("No URL returned");
+      }
     } catch (error) {
       console.error(error);
       toast.error("Upload failed. Please try again.");
@@ -77,11 +81,10 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       {/* Preview or Upload Button */}
       {value ? (
         <div className="relative h-[200px] w-[300px] overflow-hidden rounded-md border border-input shadow-sm group">
-          <Image
+          <img
             src={value}
             alt="Upload preview"
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
           />
           <div className="absolute top-2 right-2">
             <Button

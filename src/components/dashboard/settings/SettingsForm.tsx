@@ -24,6 +24,8 @@ import { FAQManager } from "@/components/dashboard/settings/FAQManager";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ListManager, ListItem } from "@/components/dashboard/settings/ListManager";
+import { AboutSettings } from "@/components/dashboard/settings/AboutSettings";
 
 const settingsSchema = z.object({
   site_name: z.string().min(1, "Site name is required"),
@@ -33,7 +35,13 @@ const settingsSchema = z.object({
   hero_subtitle: z.string().optional(),
   instagram_url: z.string().optional(),
   tiktok_url: z.string().optional(),
-  about_content: z.string().optional(),
+  about_landing_summary: z.string().optional(),
+  about_image_url: z.string().optional(),
+  about_intro: z.string().optional(),
+  about_vision_title: z.string().optional(),
+  about_vision: z.string().optional(), // Reusing this for vision text
+  about_mission: z.string().optional(), // JSON string
+  about_programs: z.string().optional(), // JSON string
   footer_text: z.string().optional(),
   navbar_config: z.string().optional(), // Storing JSON as string for simplicity
 });
@@ -46,6 +54,7 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialData }: SettingsFormProps) {
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("general");
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -72,19 +81,22 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     }
   };
 
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 h-auto">
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="hero">Hero Section</TabsTrigger>
-                <TabsTrigger value="navigation">Navigation</TabsTrigger>
-                <TabsTrigger value="about">About Us</TabsTrigger>
-                <TabsTrigger value="faq">FAQ</TabsTrigger>
-                <TabsTrigger value="social">Social Media</TabsTrigger>
-            </TabsList>
+  const showMainSaveButton = ["general", "hero", "navigation", "social"].includes(activeTab);
 
+  return (
+    <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-5 h-auto">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="hero">Hero Section</TabsTrigger>
+            <TabsTrigger value="navigation">Navigation</TabsTrigger>
+            <TabsTrigger value="about">About Us</TabsTrigger>
+            <TabsTrigger value="faq">FAQ</TabsTrigger>
+            <TabsTrigger value="social">Social Media</TabsTrigger>
+        </TabsList>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
+            
             <TabsContent value="general">
                 <Card>
                     <CardHeader>
@@ -224,38 +236,6 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 </Card>
             </TabsContent>
 
-            <TabsContent value="about">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>About Us Page</CardTitle>
-                        <CardDescription>Content for the "About Us" section.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="about_content"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Content</FormLabel>
-                                <FormControl>
-                                    <RichTextEditor 
-                                        content={field.value || ""} 
-                                        onChange={field.onChange} 
-                                        placeholder="Tell the story of your KKM group..." 
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </CardContent>
-                </Card>
-            </TabsContent>
-
-            <TabsContent value="faq">
-                <FAQManager />
-            </TabsContent>
-
             <TabsContent value="social">
                 <Card>
                     <CardHeader>
@@ -292,12 +272,22 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                     </CardContent>
                 </Card>
             </TabsContent>
-        </Tabs>
 
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Save Changes"}
-        </Button>
-      </form>
-    </Form>
+            {showMainSaveButton && (
+                <Button type="submit" disabled={loading}>
+                    {loading ? "Saving..." : "Save Changes"}
+                </Button>
+            )}
+          </form>
+        </Form>
+
+        <TabsContent value="about" className="mt-6">
+            <AboutSettings />
+        </TabsContent>
+
+        <TabsContent value="faq" className="mt-6">
+            <FAQManager />
+        </TabsContent>
+    </Tabs>
   );
 }

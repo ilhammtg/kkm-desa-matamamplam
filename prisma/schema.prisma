@@ -15,6 +15,7 @@ datasource db {
 enum Role {
   SUPERADMIN
   PDD
+  TREASURER
 }
 
 enum PostType {
@@ -64,6 +65,7 @@ model Post {
   slug          String     @unique
   excerpt       String?    @db.Text
   content       String     @db.Text
+  location      String?
 
   coverImageUrl String?    @map("cover_image_url")
   /// Opsional: simpan array URL gambar dalam JSON
@@ -91,4 +93,273 @@ model Faq {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("faqs")
+}
+
+model Division {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique
+  positions Position[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("divisions")
+}
+
+model Position {
+  id         String    @id @default(uuid()) @db.Uuid
+  title      String
+  level      Int
+  divisionId String?   @map("division_id") @db.Uuid
+  division   Division? @relation(fields: [divisionId], references: [id])
+  members    Member[]
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("positions")
+}
+
+model Member {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  npm        String
+  major      String
+  photoUrl   String?  @map("photo_url")
+  positionId String   @map("position_id") @db.Uuid
+  position   Position @relation(fields: [positionId], references: [id])
+  incomes    Income[]
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("members")
+}
+
+model SocialMedia {
+  id        String   @id @default(uuid()) @db.Uuid
+  platform  String
+  url       String
+  icon      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("social_medias")
+}
+
+model AboutPage {
+  id String @id @default(uuid()) @db.Uuid
+
+  // LANDING SECTION
+  landingTitle       String? @map("landing_title")
+  landingContentHtml String? @map("landing_content_html") @db.Text
+  landingImageUrl    String? @map("landing_image_url")
+
+  // VISION SECTION
+  visionLabel       String? @map("vision_label")
+  visionTitle       String? @map("vision_title")
+  visionDescription String? @map("vision_description") @db.Text
+  visionImageUrl    String? @map("vision_image_url")
+
+  // MISSION SECTION
+  missionLabel    String? @map("mission_label")
+  missionTitle    String? @map("mission_title")
+  missionSubtitle String? @map("mission_subtitle")
+
+  // PROGRAM SECTION
+  programBadge    String? @map("program_badge")
+  programTitle    String? @map("program_title")
+  programSubtitle String? @map("program_subtitle")
+
+  // RELATIONS
+  missionItems AboutMissionItem[]
+  programItems AboutProgramItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("about_pages")
+}
+
+model AboutMissionItem {
+  id          String @id @default(uuid()) @db.Uuid
+  aboutPageId String @map("about_page_id") @db.Uuid
+  
+  title       String
+  description String @db.Text
+  icon        String?
+  order       Int    @default(0)
+
+  aboutPage AboutPage @relation(fields: [aboutPageId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([aboutPageId])
+  @@map("about_mission_items")
+}
+
+model AboutProgramItem {
+  id          String @id @default(uuid()) @db.Uuid
+  aboutPageId String @map("about_page_id") @db.Uuid
+
+  title       String
+  description String  @db.Text
+  href        String?
+  numberLabel String? @map("number_label") // "01", "02", etc.
+  order       Int     @default(0)
+
+  aboutPage AboutPage @relation(fields: [aboutPageId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([aboutPageId])
+  @@map("about_program_items")
+}
+
+/// ======================
+/// FINANCE SYSTEM
+/// ======================
+
+model IncomeCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g., "Kas Anggota", "Denda", "Hibah Kampus"
+  incomes   Income[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("income_categories")
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique // e.g., "Konsumsi", "Transportasi"
+  expenses  Expense[]
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("expense_categories")
+}
+
+model PaymentMethod {
+  id        String    @id @default(cuid())
+  name      String    @unique // e.g., "Cash", "Transfer", "QRIS"
+  isActive  Boolean   @default(true) @map("is_active")
+  incomes   Income[]
+  expenses  Expense[]
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("payment_methods")
+}
+
+model FinanceDay {
+  id             String   @id @default(cuid())
+  date           DateTime @unique // Only one record per day
+  openingBalance Int      @default(0) @map("opening_balance")
+  closingBalance Int      @default(0) @map("closing_balance")
+  status         String   @default("OPEN") // OPEN, CLOSED
+
+  incomes  Income[]
+  expenses Expense[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("finance_days")
+}
+
+model Income {
+  id          String   @id @default(cuid())
+  date        DateTime
+  amount      Int
+  description String? // General note
+  extraMeta   Json?    @map("extra_meta") // Flexible field for category-specific data
+
+  // Relations
+  memberId String? @map("member_id") @db.Uuid
+  member   Member? @relation(fields: [memberId], references: [id])
+
+  categoryId String         @map("category_id")
+  category   IncomeCategory @relation(fields: [categoryId], references: [id])
+
+  paymentMethodId String        @map("payment_method_id")
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  financeDayId String?     @map("finance_day_id")
+  financeDay   FinanceDay? @relation(fields: [financeDayId], references: [id])
+
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("incomes")
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  date        DateTime
+  amount      Int
+  description String?
+
+  // Relations
+  categoryId String          @map("category_id")
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  paymentMethodId String        @map("payment_method_id")
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
+
+  rabItemId String?  @map("rab_item_id")
+  rabItem   RabItem? @relation(fields: [rabItemId], references: [id])
+
+  financeDayId String?     @map("finance_day_id")
+  financeDay   FinanceDay? @relation(fields: [financeDayId], references: [id])
+
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("expenses")
+}
+
+model Rab {
+  id        String    @id @default(cuid())
+  title     String // e.g. "RAB KKM 2026"
+  year      Int
+  items     RabItem[]
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("rabs")
+}
+
+model RabCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique // e.g. "Konsumsi", "Transportasi", "Proker"
+  items     RabItem[]
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("rab_categories")
+}
+
+model RabItem {
+  id            String      @id @default(cuid())
+  rabId         String      @map("rab_id")
+  rab           Rab         @relation(fields: [rabId], references: [id], onDelete: Cascade)
+  
+  rabCategoryId String      @map("rab_category_id")
+  rabCategory   RabCategory @relation(fields: [rabCategoryId], references: [id])
+
+  name      String
+  quantity  Int
+  unit      String // e.g. "Paket", "Liter"
+  unitPrice Int    @map("unit_price")
+  total     Int // quantity * unitPrice
+
+  expenses Expense[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("rab_items")
+}
+
+model LoginAttempt {
+  identifier  String   @id // Email
+  attempts    Int      @default(0)
+  lastFailed  DateTime @default(now()) @map("last_failed")
+  lockedUntil DateTime? @map("locked_until")
+  
+  @@map("login_attempts")
 }

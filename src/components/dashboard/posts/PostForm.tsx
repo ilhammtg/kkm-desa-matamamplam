@@ -37,6 +37,7 @@ const postSchema = z.object({
   excerpt: z.string().optional(),
   content: z.string().min(1, "Content is required"),
   coverImageUrl: z.string().optional(),
+  location: z.string().optional(),
   type: z.enum(["ARTICLE", "ACTIVITY"]),
   status: z.enum(["DRAFT", "PUBLISHED"]),
 });
@@ -59,6 +60,7 @@ export function PostForm({ initialData }: PostFormProps) {
       excerpt: initialData?.excerpt || "",
       coverImageUrl: initialData?.coverImageUrl || "",
       content: initialData?.content || "",
+      location: initialData?.location || "",
       type: (initialData?.type as PostType) || "ARTICLE",
       status: (initialData?.status as PostStatus) || "DRAFT",
     },
@@ -126,6 +128,20 @@ export function PostForm({ initialData }: PostFormProps) {
         />
 
         <div className="grid grid-cols-2 gap-4">
+             <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Location (Optional)</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g. Balai Desa, Masjid Raya" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+            />
+             
              <FormField
                 control={form.control}
                 name="type"
