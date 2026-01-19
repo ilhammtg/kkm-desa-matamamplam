@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Instagram, Youtube, Facebook, Twitter, Linkedin, Globe, Video, MessageSquare } from "lucide-react";
+import { Instagram, Youtube, Facebook, Twitter, Linkedin, Globe, Video, MessageSquare, Menu } from "lucide-react";
 import { SocialMedia } from "@prisma/client";
 import { TikTokIcon } from "@/components/icons/TikTokIcon";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 
 interface NavbarProps {
   settings: Record<string, string>;
@@ -88,12 +89,58 @@ export function Navbar({ settings, socials = [] }: NavbarProps) {
           <div className="w-full flex-1 md:w-auto md:flex-none">
             {/* Search or other items */}
           </div>
-          <nav className="flex items-center">
-            <Link href="/login">
+          <nav className="flex items-center gap-2">
+            <Link href="/login" className="hidden md:block">
               <Button variant="ghost" size="sm" className="font-medium">
                 Login
               </Button>
             </Link>
+
+            {/* Mobile Menu */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Toggle menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <SheetHeader>
+                   <SheetTitle className="text-left">Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-4 mt-6">
+                  {links.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="text-lg font-medium hover:text-primary transition-colors"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  <div className="h-px bg-border my-2" />
+                  <Link href="/login">
+                    <Button className="w-full">Login</Button>
+                  </Link>
+
+                  {/* Mobile Socials */}
+                  <div className="flex gap-4 mt-4">
+                     {/* Instagram */}
+                     {settings.instagram_url && settings.instagram_url.trim() !== "" && (
+                       <Link href={settings.instagram_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-pink-600">
+                         <Instagram className="h-6 w-6" />
+                       </Link>
+                     )}
+                     {/* TikTok */}
+                     {settings.tiktok_url && settings.tiktok_url.trim() !== "" && (
+                       <Link href={settings.tiktok_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-black">
+                         <TikTokIcon className="h-5 w-5" /> 
+                       </Link>
+                     )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
           </nav>
         </div>
       </div>
