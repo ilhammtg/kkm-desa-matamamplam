@@ -7,6 +7,7 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const result = await uploadImage(formData);
+    
 
     if (!result.success) {
       return NextResponse.json(

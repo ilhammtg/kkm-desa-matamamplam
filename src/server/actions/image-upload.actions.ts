@@ -18,15 +18,6 @@ export async function uploadImage(formData: FormData): Promise<{ success: boolea
   if (!file) return { success: false, error: "No file uploaded" };
 
   try {
-    const hasCloudinary =
-      process.env.CLOUDINARY_CLOUD_NAME &&
-      process.env.CLOUDINARY_API_KEY &&
-      process.env.CLOUDINARY_API_SECRET;
-
-    if (!hasCloudinary) {
-      return { success: false, error: "Cloudinary configuration is missing" };
-    }
-
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -39,8 +30,24 @@ export async function uploadImage(formData: FormData): Promise<{ success: boolea
       resource_type: "image",
     });
 
-    const url = result?.secure_url || result?.url;
-    if (!url) return { success: false, error: "Cloudinary did not return any URL" };
+    // ✅ fallback URL paling aman
+    let url: string | undefined =
+      result?.secure_url ||
+      (result?.url ? String(result.url).replace("http://", "https://") : undefined);
+
+    // ✅ kalau URL tidak ada, generate dari public_id
+    if (!url && result?.public_id) {
+      url = cloudinary.url(result.public_id, {
+        secure: true,
+        resource_type: "image",
+      });
+    }
+
+    if (!url) {
+      // optional debug (lihat di Vercel function logs)
+      console.log("Cloudinary result:", result);
+      return { success: false, error: "Cloudinary did not return any usable URL" };
+    }
 
     return { success: true, url };
   } catch (error: any) {
