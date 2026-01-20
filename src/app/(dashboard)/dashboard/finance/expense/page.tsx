@@ -63,7 +63,7 @@ export default function FinanceExpensePage() {
   
   const [formData, setFormData] = useState({
       date: new Date(),
-      amount: 0,
+      amount: "" as any,
       paymentMethodId: "",
       categoryId: "",
       rabItemId: "no-rab",
@@ -125,7 +125,7 @@ export default function FinanceExpensePage() {
           
           setDialogOpen(false);
           setEditingId(null);
-          setFormData(prev => ({ ...prev, amount: 0, description: "" })); 
+          setFormData(prev => ({ ...prev, amount: "", description: "" })); 
           fetchData();
       } catch (error: any) {
           toast.error(error.message);
@@ -176,7 +176,7 @@ export default function FinanceExpensePage() {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
                 <Button variant="destructive" onClick={() => {
-                    setFormData({ ...formData, date: new Date(), amount: 0, description: "" });
+                    setFormData({ ...formData, date: new Date(), amount: "", description: "" });
                     setEditingId(null);
                 }}>
                     <Plus className="mr-2 h-4 w-4" /> Record Expense
@@ -260,7 +260,8 @@ export default function FinanceExpensePage() {
                                 <Input 
                                     type="number" min="0" 
                                     value={formData.amount}
-                                    onChange={(e) => setFormData({...formData, amount: parseInt(e.target.value || "0")})}
+                                    placeholder="0"
+                                    onChange={(e) => setFormData({...formData, amount: e.target.value === "" ? "" : parseInt(e.target.value)})}
                                 />
                             </div>
                         </div>

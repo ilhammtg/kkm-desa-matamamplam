@@ -1,13 +1,17 @@
 
 import { getSiteSettings } from "@/server/actions/settings.actions";
 import { PrismaClient, PostType, PostStatus } from "@prisma/client";
+import { prisma } from "@/server/db/prisma";
 import Image from "next/image";
 import Link from "next/link";
 import { Calendar, User, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
-const prisma = new PrismaClient();
+export const dynamic = "force-dynamic";
+
+// const prisma = new PrismaClient(); // Removed
+
 
 async function getArticles() {
   return await prisma.post.findMany({
