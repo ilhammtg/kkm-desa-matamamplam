@@ -31,8 +31,8 @@ export function BatchKasEntry({ date, paymentMethods, categories, onClose }: Bat
     const [membersStatus, setMembersStatus] = useState<any[]>([]);
     
     // Global Settings
-    const [globalAmount, setGlobalAmount] = useState<number>(10000);
-    const [globalNote, setGlobalNote] = useState("Kas Harian");
+    const [globalAmount, setGlobalAmount] = useState<number>(5000);
+    const [globalNote, setGlobalNote] = useState("Kas Hari Ke");
     // const [globalMethod, setGlobalMethod] = useState(""); // If we want to force method
 
     // Loading states for individual rows
