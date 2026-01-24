@@ -135,3 +135,32 @@ export async function deletePost(id: string) {
   await prisma.post.delete({ where: { id } });
   revalidatePath("/dashboard/posts");
 }
+
+// Public search
+export async function searchPublicPosts(query: string) {
+  if (!query) return [];
+  
+  return await prisma.post.findMany({
+    where: {
+      status: PostStatus.PUBLISHED,
+      OR: [
+        { title: { contains: query, mode: 'insensitive' } },
+        { content: { contains: query, mode: 'insensitive' } },
+        { excerpt: { contains: query, mode: 'insensitive' } },
+      ]
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      type: true,
+      coverImageUrl: true,
+      createdAt: true,
+      author: {
+        select: { name: true }
+      }
+    }
+  });
+}

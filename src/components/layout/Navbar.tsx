@@ -8,6 +8,8 @@ import { Instagram, Youtube, Facebook, Twitter, Linkedin, Globe, Video, MessageS
 import { SocialMedia } from "@prisma/client";
 import { TikTokIcon } from "@/components/icons/TikTokIcon";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 interface NavbarProps {
   settings: Record<string, string>;
@@ -17,7 +19,7 @@ interface NavbarProps {
 const iconMap: Record<string, any> = {
   Instagram,
   Youtube,
-  TikTok: MessageSquare, // Use MessageSquare or similar for TikTok if not available
+  TikTok: TikTokIcon,
   Facebook,
   Twitter,
   Linkedin,
@@ -30,6 +32,7 @@ export function Navbar({ settings, socials = [] }: NavbarProps) {
   const links = [
     { href: "/kegiatan", label: "Kegiatan" },
     { href: "/artikel", label: "Artikel" },
+    { href: "/transparansi", label: "Cash Flow" },
     { href: "/about", label: "Tentang Kami" },
   ];
 
@@ -66,28 +69,46 @@ export function Navbar({ settings, socials = [] }: NavbarProps) {
             })}
 
             {/* Socials in Nav */}
-            <div className="flex items-center space-x-3 border-l pl-4 ml-4 h-6">
-               {/* Instagram */}
-               {settings.instagram_url && settings.instagram_url.trim() !== "" && (
-                 <Link href={settings.instagram_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-pink-600 transition-colors p-1.5 hover:bg-pink-50 rounded-full">
-                   <Instagram className="h-5 w-5" />
-                   <span className="sr-only">Instagram</span>
-                 </Link>
-               )}
-
-               {/* TikTok */}
-               {settings.tiktok_url && settings.tiktok_url.trim() !== "" && (
-                 <Link href={settings.tiktok_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-black transition-colors p-1.5 hover:bg-gray-100 rounded-full">
-                   <TikTokIcon className="h-4 w-4" /> 
-                   <span className="sr-only">TikTok</span>
-                 </Link>
-               )}
+            <div className="flex items-center space-x-1 border-l pl-4 ml-4 h-6">
+               {socials.map((social) => {
+                 const Icon = iconMap[social.platform] || Globe;
+                 return (
+                   <Link 
+                     key={social.id} 
+                     href={social.url} 
+                     target="_blank" 
+                     rel="noopener noreferrer" 
+                     className="text-muted-foreground hover:text-primary transition-colors p-1.5 hover:bg-secondary rounded-full"
+                   >
+                     <Icon className="h-4 w-4" />
+                     <span className="sr-only">{social.platform}</span>
+                   </Link>
+                 );
+               })}
             </div>
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-4 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none">
-            {/* Search or other items */}
+            {/* Search */}
+            <form onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.target as HTMLFormElement;
+                const input = form.elements.namedItem("search") as HTMLInputElement;
+                if (input.value.trim()) {
+                    window.location.href = `/search?q=${encodeURIComponent(input.value)}`;
+                }
+            }} className="relative hidden lg:block w-full max-w-[200px]">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        name="search"
+                        placeholder="Cari..."
+                        className="w-full bg-background rounded-full pl-9 h-9 text-sm focus-visible:ring-primary/20"
+                    />
+                </div>
+            </form>
           </div>
           <nav className="flex items-center gap-2">
             <Link href="/login" className="hidden md:block">
@@ -143,22 +164,20 @@ export function Navbar({ settings, socials = [] }: NavbarProps) {
                   <div className="mt-auto pb-8">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-4">Connect With Us</p>
                       <div className="flex gap-4">
-                         {/* Instagram */}
-                         {settings.instagram_url && settings.instagram_url.trim() !== "" && (
-                           <Link href={settings.instagram_url} target="_blank" rel="noopener noreferrer" className="p-3 rounded-full bg-secondary/50 hover:bg-pink-100 dark:hover:bg-pink-900/20 text-muted-foreground hover:text-pink-600 transition-all hover:scale-110">
-                             <Instagram className="h-5 w-5" />
-                           </Link>
-                         )}
-                         {/* TikTok */}
-                         {settings.tiktok_url && settings.tiktok_url.trim() !== "" && (
-                           <Link href={settings.tiktok_url} target="_blank" rel="noopener noreferrer" className="p-3 rounded-full bg-secondary/50 hover:bg-gray-200 dark:hover:bg-gray-800 text-muted-foreground hover:text-black dark:hover:text-white transition-all hover:scale-110">
-                             <TikTokIcon className="h-5 w-5" /> 
-                           </Link>
-                         )}
-                         {/* Youtube (Assuming available in settings/iconMap if needed) */}
-                          <Link href="#" className="p-3 rounded-full bg-secondary/50 hover:bg-red-100 dark:hover:bg-red-900/20 text-muted-foreground hover:text-red-600 transition-all hover:scale-110">
-                             <Youtube className="h-5 w-5" />
-                           </Link>
+                         {socials.map((social) => {
+                             const Icon = iconMap[social.platform] || Globe;
+                             return (
+                               <Link 
+                                 key={social.id}
+                                 href={social.url} 
+                                 target="_blank" 
+                                 rel="noopener noreferrer" 
+                                 className="p-3 rounded-full bg-secondary/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all hover:scale-110"
+                               >
+                                 <Icon className="h-5 w-5" />
+                               </Link>
+                             );
+                         })}
                       </div>
                   </div>
                 </div>

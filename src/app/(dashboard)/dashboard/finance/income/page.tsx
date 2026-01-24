@@ -8,8 +8,10 @@ import {
     getPaymentMethods,
     createIncome,
     deleteIncome,
-    updateIncome
+    updateIncome,
+    getUnpaidMembers
 } from "@/server/actions/finance.actions";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -43,10 +45,11 @@ import {
 import { format } from "date-fns";
 import { formatCurrency, cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { CalendarIcon, Plus, Loader2, Trash2, Pencil } from "lucide-react";
+import { CalendarIcon, Plus, Loader2, Trash2, Pencil, AlertCircle, ListChecks } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { BatchKasEntry } from "@/components/finance/BatchKasEntry";
 
 export default function FinanceIncomePage() {
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,13 @@ export default function FinanceIncomePage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  
+  // Date Filter & Unpaid Warning
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [unpaidMembers, setUnpaidMembers] = useState<any[]>([]);
+
+  // Form States
+  const [displayAmount, setDisplayAmount] = useState("");
 
   // Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -63,6 +73,9 @@ export default function FinanceIncomePage() {
   // Delete Dialog State
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Batch Mode State
+  const [isBatchMode, setIsBatchMode] = useState(false);
 
   
   const [formData, setFormData] = useState({
@@ -79,16 +92,18 @@ export default function FinanceIncomePage() {
   const fetchData = async () => {
       setLoading(true);
       try {
-          const [grouped, cats, mems, pms] = await Promise.all([
-              getIncomesGrouped(),
+          const [grouped, cats, mems, pms, unpaid] = await Promise.all([
+              getIncomesGrouped(selectedDate),
               getIncomeCategories(),
               getMembersForFinance(),
-              getPaymentMethods()
+              getPaymentMethods(),
+              selectedDate ? getUnpaidMembers(selectedDate) : Promise.resolve([])
           ]);
           setGroupedData(grouped);
           setCategories(cats);
           setMembers(mems);
           setPaymentMethods(pms);
+          setUnpaidMembers(unpaid);
       } catch (error) {
           toast.error("Failed to load data");
       } finally {
@@ -98,7 +113,24 @@ export default function FinanceIncomePage() {
 
   useEffect(() => {
       fetchData();
-  }, []);
+  }, [selectedDate]);
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Remove non-digits
+    const numericString = value.replace(/\D/g, "");
+    
+    if (numericString === "") {
+        setDisplayAmount("");
+        setFormData(prev => ({ ...prev, amount: "" }));
+        return;
+    }
+
+    const numberValue = parseInt(numericString);
+    // Format display
+    setDisplayAmount(formatCurrency(numberValue));
+    setFormData(prev => ({ ...prev, amount: numberValue }));
+  };
 
   const handleCreate = async () => {
       if (!formData.amount || !formData.categoryId || !formData.paymentMethodId) {
@@ -110,7 +142,7 @@ export default function FinanceIncomePage() {
           if (editingId) {
              await updateIncome(editingId, {
                 date: formData.date,
-                amount: formData.amount,
+                amount: typeof formData.amount === 'string' ? parseInt(formData.amount) : formData.amount,
                 paymentMethodId: formData.paymentMethodId,
                 categoryId: formData.categoryId,
                 memberId: formData.memberId || undefined,
@@ -121,7 +153,7 @@ export default function FinanceIncomePage() {
           } else {
              await createIncome({
                 date: formData.date,
-                amount: formData.amount,
+                amount: typeof formData.amount === 'string' ? parseInt(formData.amount) : formData.amount,
                 paymentMethodId: formData.paymentMethodId,
                 categoryId: formData.categoryId,
                 memberId: formData.memberId || undefined,
@@ -133,8 +165,9 @@ export default function FinanceIncomePage() {
           
           setDialogOpen(false);
           setEditingId(null);
-          // Reset form somewhat
+          // Reset form
           setFormData(prev => ({ ...prev, amount: "", description: "" })); 
+          setDisplayAmount("");
           fetchData();
       } catch (error: any) {
           toast.error(error.message);
@@ -154,8 +187,20 @@ export default function FinanceIncomePage() {
           description: item.description || "",
           extraMeta: item.extraMeta || {}
       });
+      setDisplayAmount(formatCurrency(item.amount));
       setDialogOpen(true);
   };
+    
+  // On open dialog reset if not editing
+  const onDialogOpenChange = (open: boolean) => {
+      if (open && !editingId) {
+          // Reset if opening in "Create" mode
+          setFormData(prev => ({ ...prev, date: new Date(), amount: "", description: "" }));
+          setDisplayAmount("");
+      }
+      setDialogOpen(open);
+  }
+
 
   const confirmDelete = (id: string) => {
       setDeletingId(id);
@@ -185,15 +230,46 @@ export default function FinanceIncomePage() {
   return (
     <div className="space-y-8 pb-10">
       <div className="flex justify-between items-center">
-        <div>
-            <h2 className="text-2xl font-bold tracking-tight">Pemasukan (Income)</h2>
-            <p className="text-muted-foreground">Manage and track all incoming funds by category.</p>
+        <div className="flex flex-col gap-2">
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight">Pemasukan (Income)</h2>
+                <p className="text-muted-foreground">Manage and track all incoming funds by category.</p>
+            </div>
+            {/* Date Filter */}
+            <div className="flex items-center gap-2">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                            {selectedDate ? format(selectedDate, "PPP") : <span>Filter by Date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && setSelectedDate(d)} initialFocus />
+                    </PopoverContent>
+                </Popover>
+                {selectedDate ? (
+                    <Button variant="secondary" onClick={() => setSelectedDate(undefined)}>
+                        View All Data
+                    </Button>
+                ) : (
+                    <Button variant="default" onClick={() => setSelectedDate(new Date())}>
+                        Filter Today
+                    </Button>
+                )}
+            </div>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            
+            {!isBatchMode && (
+                <Button variant="outline" onClick={() => setIsBatchMode(true)} className="ml-auto mr-2">
+                    <ListChecks className="mr-2 h-4 w-4" /> Mode Catat Kas Massal
+                </Button>
+            )}
+
+            <Dialog open={dialogOpen} onOpenChange={onDialogOpenChange}>
             <DialogTrigger asChild>
                 <Button onClick={() => {
-                    setFormData({ ...formData, date: new Date(), amount: "", description: "" });
-                    setEditingId(null);
+                   setEditingId(null); // Ensure null on explicit click
                 }}>
                     <Plus className="mr-2 h-4 w-4" /> Record Income
                 </Button>
@@ -275,11 +351,12 @@ export default function FinanceIncomePage() {
                                 <div className="space-y-2">
                                     <Label>Amount (Rp)</Label>
                                     <Input 
-                                        type="number" min="0" 
-                                        value={formData.amount}
-                                        placeholder="0"
-                                        onChange={(e) => setFormData({...formData, amount: e.target.value === "" ? "" : parseInt(e.target.value)})}
+                                        type="text"
+                                        value={displayAmount}
+                                        placeholder="Rp 0"
+                                        onChange={handleAmountChange}
                                     />
+                                    <p className="text-xs text-muted-foreground">Masukkan nominal penuh (misal: 10000 untuk 10rb)</p>
                                 </div>
                             </div>
                             
@@ -326,8 +403,40 @@ export default function FinanceIncomePage() {
         </Dialog>
       </div>
 
+      {unpaidMembers.length > 0 && (
+        <Card className="border-l-4 border-l-amber-500 bg-amber-500/10 mb-8">
+            <CardHeader className="py-4">
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
+                    <AlertCircle className="h-5 w-5" />
+                    <CardTitle className="text-lg">Belum Bayar Kas ( {format(selectedDate!, 'dd MMMM yyyy')} )</CardTitle>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="flex flex-wrap gap-2">
+                    {unpaidMembers.map((m) => (
+                        <div key={m.id} className="flex items-center gap-2 bg-background/80 px-3 py-1.5 rounded-full border shadow-sm text-sm">
+                            <span className="font-semibold">{m.name}</span>
+                            <span className="text-muted-foreground text-xs">({m.npm})</span>
+                        </div>
+                    ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">* Menampilkan anggota yang belum ada catatan "Kas Anggota" pada tanggal ini.</p>
+            </CardContent>
+        </Card>
+      )}
+
       {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+      ) : isBatchMode ? (
+          <BatchKasEntry 
+             date={selectedDate || new Date()} 
+             paymentMethods={paymentMethods} 
+             categories={categories}
+             onClose={() => {
+                 setIsBatchMode(false);
+                 fetchData(); // Refresh data when closing
+             }} 
+          />
       ) : (
           <div className="space-y-8">
               {categories.map((category) => {

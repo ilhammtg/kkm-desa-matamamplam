@@ -1,5 +1,3 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 import { getSiteSettings } from "@/server/actions/settings.actions";
 import { getPostBySlug } from "@/server/actions/posts.actions";
 import { notFound } from "next/navigation";
@@ -11,6 +9,9 @@ import Link from "next/link";
 import { PostType } from "@prisma/client";
 import { Metadata } from "next";
 import { Button } from "@/components/ui/button";
+import { ShareActions } from "@/components/shared/ShareActions";
+import { CommentSection } from "@/components/shared/CommentSection";
+import { getPostComments } from "@/server/actions/comments.actions";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -51,7 +52,6 @@ export default async function ActivityDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background font-sans">
-      <Navbar settings={settings} />
       
       <main className="flex-1">
         {/* Hero Section */}
@@ -131,6 +131,16 @@ export default async function ActivityDetailPage({ params }: PageProps) {
                 dangerouslySetInnerHTML={{ __html: post.content }} 
              />
 
+             {/* Share Section */}
+             <div className="mt-12 py-6 border-t border-b flex justify-center">
+                <ShareActions title={post.title} url={`/kegiatan/${slug}`} />
+             </div>
+
+             {/* Comments Section */}
+             <div className="container max-w-3xl mx-auto mt-12">
+                <CommentSection postId={post.id} existingComments={await getPostComments(post.id)} />
+             </div>
+
              {/* Footer of Article */}
              <div className="mt-20 pt-10 border-t flex flex-col items-center text-center bg-gradient-to-br from-muted/30 to-muted/10 p-10 rounded-3xl gap-6">
                 <div className="max-w-xl">
@@ -144,7 +154,23 @@ export default async function ActivityDetailPage({ params }: PageProps) {
         </article>
 
       </main>
-      <Footer settings={settings} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: post.title,
+            image: post.coverImageUrl ? [post.coverImageUrl] : [],
+            datePublished: post.publishedAt || post.createdAt,
+            dateModified: post.updatedAt,
+            author: [{
+                "@type": "Person",
+                name: post.author?.name || "Admin",
+            }],
+          }),
+        }}
+      />
     </div>
   );
 }

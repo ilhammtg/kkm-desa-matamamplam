@@ -92,10 +92,27 @@ async function getOrCreateTodayFinanceDay() {
 }
 
 // --- INCOME ---
-export async function getIncomesGrouped() {
+// --- INCOME ---
+export async function getIncomesGrouped(date?: Date) {
     await checkTreasurerPermission();
-    // Fetch all incomes
+    
+    // Build where clause
+    const where: any = {};
+    if (date) {
+        const start = new Date(date);
+        start.setHours(0,0,0,0);
+        const end = new Date(date);
+        end.setHours(23,59,59,999);
+        
+        where.date = {
+            gte: start,
+            lte: end
+        };
+    }
+
+    // Fetch incomes
     const incomes = await prisma.income.findMany({
+        where,
         orderBy: { date: 'desc' },
         include: { category: true, member: true, paymentMethod: true }
     });
@@ -109,6 +126,104 @@ export async function getIncomesGrouped() {
     });
 
     return grouped;
+}
+
+export async function getUnpaidMembers(date: Date) {
+    await checkTreasurerPermission();
+
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    // 1. Get "Kas Anggota" category
+    const kasCategory = await prisma.incomeCategory.findUnique({
+        where: { name: "Kas Anggota" }
+    });
+
+    if (!kasCategory) return []; // Or throw error depending on strictness
+
+    // 2. Get all members
+    const members = await prisma.member.findMany({
+        where: {
+            // Optional: filter only active members if you have such filed
+        },
+        include: {
+            position: true
+        },
+        orderBy: { name: 'asc' }
+    });
+
+    // 3. Get all incomes for Kas Anggota on that date
+    const paidIncomes = await prisma.income.findMany({
+        where: {
+            categoryId: kasCategory.id,
+            date: {
+                gte: start,
+                lte: end
+            },
+            memberId: { not: null } // Ensure bound to member
+        },
+        select: { memberId: true }
+    });
+
+    const paidMemberIds = new Set(paidIncomes.map(i => i.memberId));
+
+    // 4. Filter
+    const unpaidMembers = members.filter(m => !paidMemberIds.has(m.id));
+
+    return unpaidMembers;
+}
+
+export async function getKasMembersStatus(date: Date) {
+    await checkTreasurerPermission();
+
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    // 1. Get "Kas Anggota" category
+    const kasCategory = await prisma.incomeCategory.findUnique({
+        where: { name: "Kas Anggota" }
+    });
+
+    if (!kasCategory) throw new Error("Category 'Kas Anggota' not found");
+
+    // 2. Get all members
+    const members = await prisma.member.findMany({
+        orderBy: { name: 'asc' },
+        include: { position: true }
+    });
+
+    // 3. Get paid incomes
+    const paidIncomes = await prisma.income.findMany({
+        where: {
+            categoryId: kasCategory.id,
+            date: { gte: start, lte: end },
+            memberId: { not: null }
+        },
+        select: { 
+            id: true, 
+            memberId: true, 
+            amount: true, 
+            paymentMethodId: true 
+        }
+    });
+
+    // 4. Map to status
+    const paymentMap = new Map(paidIncomes.map(p => [p.memberId, p]));
+
+    return members.map(m => {
+        const payment = paymentMap.get(m.id);
+        return {
+            member: m,
+            hasPaid: !!payment,
+            incomeId: payment?.id,
+            amount: payment?.amount,
+            paymentMethodId: payment?.paymentMethodId
+        };
+    });
 }
 
 export async function createIncome(data: {
@@ -139,9 +254,24 @@ export async function createIncome(data: {
 }
 
 // --- EXPENSE ---
-export async function getExpensesGrouped() {
+export async function getExpensesGrouped(date?: Date) {
     await checkTreasurerPermission();
+    
+    const where: any = {};
+    if (date) {
+        const start = new Date(date);
+        start.setHours(0,0,0,0);
+        const end = new Date(date);
+        end.setHours(23,59,59,999);
+        
+        where.date = {
+            gte: start,
+            lte: end
+        };
+    }
+
     const expenses = await prisma.expense.findMany({
+        where,
         orderBy: { date: 'desc' },
         include: { category: true, rabItem: true, paymentMethod: true }
     });

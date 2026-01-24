@@ -23,6 +23,13 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: settings.favicon_url || settings.logo_url || "/favicon.ico",
       apple: settings.favicon_url || settings.logo_url || "/favicon.ico",
     },
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kkm.matamamplam.com"),
+    openGraph: {
+        type: 'website',
+        locale: 'id_ID',
+        url: process.env.NEXT_PUBLIC_APP_URL || "https://kkm.matamamplam.com",
+        siteName: settings.site_name || "KKM Mata Mamplam",
+    }
   };
 }
 

@@ -18,10 +18,7 @@ export function slugify(text: string) {
 }
 
 export function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  // Manual formatting to ensure Indonesian style (dots for thousands)
+  // Intl.NumberFormat can sometimes vary by browser/environment locale data
+  return "Rp " + amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }

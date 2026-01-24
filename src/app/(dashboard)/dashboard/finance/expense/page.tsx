@@ -52,6 +52,9 @@ export default function FinanceExpensePage() {
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [rabItems, setRabItems] = useState<any[]>([]);
 
+  // Date Filter
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+
   // Dialog State
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -74,7 +77,7 @@ export default function FinanceExpensePage() {
       setLoading(true);
       try {
           const [grouped, cats, pms, rabs] = await Promise.all([
-              getExpensesGrouped(),
+              getExpensesGrouped(selectedDate),
               getExpenseCategories(),
               getPaymentMethods(),
               getRabItemsGrouped()
@@ -92,7 +95,7 @@ export default function FinanceExpensePage() {
 
   useEffect(() => {
       fetchData();
-  }, []);
+  }, [selectedDate]);
 
   const handleCreate = async () => {
       if (!formData.amount || !formData.categoryId || !formData.paymentMethodId) {
@@ -172,6 +175,30 @@ export default function FinanceExpensePage() {
         <div>
             <h2 className="text-2xl font-bold tracking-tight">Pengeluaran (Expense)</h2>
             <p className="text-muted-foreground">Manage expenses grouped by category.</p>
+            
+             {/* Date Filter */}
+             <div className="flex items-center gap-2 mt-4">
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant={"outline"} className={cn("w-[240px] pl-3 text-left font-normal", !selectedDate && "text-muted-foreground")}>
+                            {selectedDate ? format(selectedDate, "PPP") : <span>Filter by Date</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && setSelectedDate(d)} initialFocus />
+                    </PopoverContent>
+                </Popover>
+                {selectedDate ? (
+                    <Button variant="secondary" onClick={() => setSelectedDate(undefined)}>
+                        View All Data
+                    </Button>
+                ) : (
+                    <Button variant="default" onClick={() => setSelectedDate(new Date())}>
+                        Filter Today
+                    </Button>
+                )}
+            </div>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -263,6 +290,7 @@ export default function FinanceExpensePage() {
                                     placeholder="0"
                                     onChange={(e) => setFormData({...formData, amount: e.target.value === "" ? "" : parseInt(e.target.value)})}
                                 />
+                                <p className="text-xs text-muted-foreground">Masukkan nominal penuh (misal: 10000 untuk 10rb)</p>
                             </div>
                         </div>
                         

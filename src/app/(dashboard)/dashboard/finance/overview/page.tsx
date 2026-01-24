@@ -94,7 +94,7 @@ export default function FinanceOverviewPage() {
                                 fontSize={12}
                                 tickLine={false}
                                 axisLine={false}
-                                tickFormatter={(value) => `Rp${value / 1000}k`}
+                                tickFormatter={(value) => formatCurrency(value)}
                             />
                             <Tooltip 
                                 formatter={(value: number | undefined) => formatCurrency(value ?? 0)}
