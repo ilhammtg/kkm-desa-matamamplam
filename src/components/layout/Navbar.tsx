@@ -138,6 +138,28 @@ export function Navbar({ settings, socials = [] }: NavbarProps) {
                 </SheetHeader>
                 
                 <div className="flex flex-col h-full px-6 py-6">
+                  {/* Mobile Search */}
+                  <div className="mb-6">
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const form = e.target as HTMLFormElement;
+                        const input = form.elements.namedItem("mobile-search") as HTMLInputElement;
+                        if (input.value.trim()) {
+                            window.location.href = `/search?q=${encodeURIComponent(input.value)}`;
+                        }
+                    }} className="relative w-full">
+                        <div className="relative">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="search"
+                                name="mobile-search"
+                                placeholder="Cari..."
+                                className="w-full bg-secondary/50 rounded-full pl-9 h-9 text-sm focus-visible:ring-primary/20"
+                            />
+                        </div>
+                    </form>
+                  </div>
+
                   <nav className="flex flex-col space-y-3">
                     {links.map((link, index) => (
                       <Link
