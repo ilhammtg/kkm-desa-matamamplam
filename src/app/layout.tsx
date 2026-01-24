@@ -23,11 +23,18 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: settings.favicon_url || settings.logo_url || "/favicon.ico",
       apple: settings.favicon_url || settings.logo_url || "/favicon.ico",
     },
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kkm.matamamplam.com"),
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://kkm.matamamplam.my.id"), // Sesuaikan ke .my.id jika perlu
+    
+    // --- TAMBAHKAN BAGIAN INI ---
+verification: {
+      google: "A_X_Sw_zNQKbJFvdy-FarL_9NM7cZyllq0HtZuH31gQ",
+    },
+    // ----------------------------
+
     openGraph: {
         type: 'website',
         locale: 'id_ID',
-        url: process.env.NEXT_PUBLIC_APP_URL || "https://kkm.matamamplam.com",
+        url: process.env.NEXT_PUBLIC_APP_URL || "https://kkm.matamamplam.my.id",
         siteName: settings.site_name || "KKM Mata Mamplam",
     }
   };
