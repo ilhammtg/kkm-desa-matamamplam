@@ -123,3 +123,30 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom Prose Spacing Overrides */
+.article-content p {
+  margin-bottom: 2rem !important; /* Force 32px bottom margin based on user feedback */
+  line-height: 2 !important;
+  font-size: 1.125rem;
+}
+
+.article-content h1, .article-content h2, .article-content h3 {
+    margin-top: 2.5rem !important;
+    margin-bottom: 1.25rem !important;
+}
+
+.article-content ul, .article-content ol {
+    margin-bottom: 2rem !important;
+    margin-top: 1rem !important;
+    padding-left: 1.5rem !important;
+}
+
+.article-content li {
+    margin-bottom: 0.75rem !important;
+}
+
+.article-content img {
+    margin-top: 2.5rem !important;
+    margin-bottom: 2.5rem !important;
+}

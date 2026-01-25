@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ShareActions } from "@/components/shared/ShareActions";
 import { CommentSection } from "@/components/shared/CommentSection";
 import { getPostComments } from "@/server/actions/comments.actions";
+import { ViewCounter } from "@/components/analytics/ViewCounter";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -112,11 +113,10 @@ export default async function ArticleDetailPage({ params }: PageProps) {
         {/* Content Section */}
         <article className="container max-w-3xl mx-auto px-6 pb-24">
              <div 
-                className="prose prose-lg dark:prose-invert max-w-none 
+                className="prose prose-lg dark:prose-invert max-w-none article-content
                 prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-foreground
-                prose-p:leading-relaxed prose-p:text-muted-foreground
                 prose-a:text-primary prose-a:font-semibold prose-a:no-underline hover:prose-a:underline
-                prose-img:rounded-2xl prose-img:shadow-lg prose-img:border
+                prose-img:rounded-3xl prose-img:shadow-xl prose-img:border
                 prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-muted/30 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:italic
                 prose-li:marker:text-primary
                 first-letter:text-5xl first-letter:font-bold first-letter:text-primary first-letter:float-left first-letter:mr-3 first-letter:mt-[-8px]
@@ -124,6 +124,30 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 "
                 dangerouslySetInnerHTML={{ __html: post.content }} 
              />
+
+             {/* Gallery Section */}
+             {Array.isArray(post.gallery) && (post.gallery as string[]).length > 0 && (
+                <div className="mt-16 mb-12">
+                    <div className="flex items-center gap-4 mb-8">
+                         <div className="h-px bg-border flex-1" />
+                        <h3 className="text-2xl font-bold text-center font-serif text-foreground">Galeri</h3>
+                        <div className="h-px bg-border flex-1" />
+                    </div>
+                   
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {(post.gallery as string[]).map((img, i) => (
+                            <div key={i} className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border bg-card">
+                                <Image 
+                                    src={img} 
+                                    alt={`Ilustrasi ${i + 1}`} 
+                                    fill 
+                                    className="object-cover"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+             )}
 
              {/* Share Section */}
              <div className="mt-12 py-6 border-t border-b flex justify-center">
@@ -134,6 +158,8 @@ export default async function ArticleDetailPage({ params }: PageProps) {
              <div className="container max-w-3xl mx-auto mt-12">
                 <CommentSection postId={post.id} existingComments={await getPostComments(post.id)} />
              </div>
+
+             <ViewCounter postId={post.id} />
 
              {/* Footer of Article */}
              <div className="mt-20 pt-10 border-t flex flex-col items-center text-center bg-gradient-to-br from-muted/30 to-muted/10 p-10 rounded-3xl gap-6">

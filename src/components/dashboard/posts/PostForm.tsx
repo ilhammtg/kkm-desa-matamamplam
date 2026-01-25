@@ -30,6 +30,7 @@ import { useState } from "react";
 import { slugify } from "@/lib/utils";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { GalleryUpload } from "@/components/dashboard/posts/GalleryUpload";
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -37,6 +38,7 @@ const postSchema = z.object({
   excerpt: z.string().optional(),
   content: z.string().min(1, "Content is required"),
   coverImageUrl: z.string().optional(),
+  gallery: z.array(z.string()).optional(),
   location: z.string().optional(),
   type: z.enum(["ARTICLE", "ACTIVITY"]),
   status: z.enum(["DRAFT", "PUBLISHED"]),
@@ -59,10 +61,11 @@ export function PostForm({ initialData }: PostFormProps) {
       slug: initialData?.slug || "",
       excerpt: initialData?.excerpt || "",
       coverImageUrl: initialData?.coverImageUrl || "",
+      gallery: (initialData?.gallery as string[]) || [],
       content: initialData?.content || "",
       location: initialData?.location || "",
-      type: (initialData?.type as PostType) || "ARTICLE",
-      status: (initialData?.status as PostStatus) || "DRAFT",
+      type: (initialData?.type as PostType) || "ACTIVITY",
+      status: (initialData?.status as PostStatus) || "PUBLISHED",
     },
   });
 
@@ -210,6 +213,24 @@ export function PostForm({ initialData }: PostFormProps) {
               <FormControl>
                 <ImageUpload 
                     value={field.value || ""} 
+                    onChange={field.onChange}
+                    disabled={loading}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="gallery"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Gallery</FormLabel>
+              <FormControl>
+                <GalleryUpload 
+                    value={field.value || []} 
                     onChange={field.onChange}
                     disabled={loading}
                 />

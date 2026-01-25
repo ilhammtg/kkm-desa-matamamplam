@@ -70,6 +70,7 @@ export async function createPost(data: {
   location?: string;
   type: PostType;
   coverImageUrl?: string;
+  gallery?: string[];
   status: PostStatus;
 }) {
   const session = await getServerAuthSession();
@@ -82,6 +83,7 @@ export async function createPost(data: {
   const post = await prisma.post.create({
     data: {
       ...data,
+      gallery: data.gallery ? (data.gallery as any) : undefined,
       authorId: session.user.id,
       publishedAt: data.status === "PUBLISHED" ? new Date() : null,
     },
@@ -104,6 +106,7 @@ export async function updatePost(
     location?: string;
     type?: PostType;
     coverImageUrl?: string;
+    gallery?: string[];
     status?: PostStatus;
   }
 ) {
@@ -114,6 +117,7 @@ export async function updatePost(
     where: { id },
     data: {
       ...data,
+      gallery: data.gallery ? (data.gallery as any) : undefined,
       publishedAt:
         data.status === "PUBLISHED" ? new Date() : data.status === "DRAFT" ? null : undefined,
     },

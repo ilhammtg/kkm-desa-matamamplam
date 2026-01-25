@@ -3,6 +3,7 @@
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+import Image from "@tiptap/extension-image";
 import {
   Bold,
   Italic,
@@ -15,9 +16,11 @@ import {
   Quote,
   Undo,
   Redo,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 
 interface RichTextEditorProps {
   content: string;
@@ -27,6 +30,53 @@ interface RichTextEditorProps {
 
 const Toolbar = ({ editor }: { editor: Editor | null }) => {
   if (!editor) return null;
+
+  const addImage = async () => {
+    const url = window.prompt("Enter image URL (or upload separately and paste URL here):");
+    
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+    
+    // Ideally we would integrate ImageUpload here but it's complex inside the toolbar without a dialog.
+    // For now, prompt for URL is a quick fix, but the user wants "images in the middle".
+    // Better: create a hidden file input and trigger it.
+  };
+
+  const handleImageUpload = () => {
+     const input = document.createElement('input');
+     input.type = 'file';
+     input.accept = 'image/*';
+     input.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            
+            const loadingToast = toast.loading("Uploading image...");
+            
+            try {
+                const res = await fetch("/api/uploads/cloudinary", {
+                    method: "POST",
+                    body: formData,
+                });
+                
+                if (!res.ok) throw new Error("Upload failed");
+                const data = await res.json();
+                
+                if (data.secure_url) {
+                    editor.chain().focus().setImage({ src: data.secure_url }).run();
+                    toast.success("Image added");
+                }
+            } catch (err) {
+                toast.error("Failed to upload image");
+            } finally {
+                toast.dismiss(loadingToast);
+            }
+        }
+     };
+     input.click();
+  };
 
   return (
     <div className="border border-input bg-transparent rounded-t-md p-1 flex flex-wrap items-center gap-1">
@@ -111,6 +161,16 @@ const Toolbar = ({ editor }: { editor: Editor | null }) => {
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
+       <Toggle
+        size="sm"
+        onPressedChange={handleImageUpload}
+        aria-label="Insert Image"
+      >
+        <ImageIcon className="h-4 w-4" />
+      </Toggle>
+
+      <Separator orientation="vertical" className="h-6 mx-1" />
+
       <Toggle
         size="sm"
         onPressedChange={() => editor.chain().focus().undo().run()}
@@ -136,12 +196,16 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
     extensions: [
       StarterKit,
       Underline,
+      Image.configure({
+        inline: true,
+        allowBase64: true, 
+      }),
     ],
     content: content,
     editorProps: {
       attributes: {
         class:
-          "min-h-[300px] w-full rounded-b-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 prose dark:prose-invert max-w-none",
+          "min-h-[300px] w-full rounded-b-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 prose dark:prose-invert max-w-none [&_img]:rounded-lg [&_img]:shadow-sm [&_img]:border [&_img]:mx-auto [&_img]:my-4",
       },
     },
     onUpdate: ({ editor }) => {

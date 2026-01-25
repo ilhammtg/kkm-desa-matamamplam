@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, FileText, Users, Settings, LogOut, Wallet } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Settings, LogOut, Wallet, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut, useSession } from "next-auth/react";
 
@@ -53,6 +53,12 @@ export function SidebarContent({ className, onLinkClick }: SidebarContentProps) 
       href: "/dashboard/finance/overview",
       icon: Wallet,
       roles: ["TREASURER"],
+    },
+    {
+      title: "Analytics",
+      href: "/dashboard/analytics",
+      icon: BarChart,
+      roles: ["SUPERADMIN", "PDD"],
     },
   ];
 

@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 import { getSiteSettings } from "@/server/actions/settings.actions";
+import { SiteTracker } from "@/components/analytics/SiteTracker";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -49,6 +50,7 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning>
       <body className={cn(inter.className, "min-h-screen bg-background antialiased")} suppressHydrationWarning>
         <AuthProvider>
+          <SiteTracker />
           {children}
           <Toaster />
         </AuthProvider>

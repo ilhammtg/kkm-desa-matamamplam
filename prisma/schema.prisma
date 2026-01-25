@@ -70,6 +70,7 @@ model Post {
   coverImageUrl String?    @map("cover_image_url")
   /// Opsional: simpan array URL gambar dalam JSON
   gallery       Json?
+  views         Int        @default(0)
 
   status        PostStatus @default(DRAFT)
   publishedAt   DateTime?  @map("published_at")
@@ -390,4 +391,14 @@ model ContactMessage {
   isRead    Boolean  @default(false) @map("is_read")
 
   @@map("contact_messages")
+}
+
+model SiteVisit {
+  id        String   @id @default(uuid())
+  date      DateTime @unique @db.Date // Store just the date (YYYY-MM-DD)
+  count     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_visits")
 }
