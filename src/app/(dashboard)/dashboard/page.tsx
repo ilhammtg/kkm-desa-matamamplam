@@ -136,7 +136,7 @@ export default async function DashboardPage() {
             <CardContent>
                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Database (Neon)</span>
+                        <span className="text-sm font-medium">Database (Supabase)</span>
                         <div className="flex items-center text-sm text-green-600">
                             <span className="h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
                             Connected

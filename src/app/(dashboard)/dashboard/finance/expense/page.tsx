@@ -5,7 +5,7 @@ import {
     getExpensesGrouped, 
     getExpenseCategories, 
     getPaymentMethods,
-    getRabItemsGrouped,
+    getRabs,
     createExpense,
     deleteExpense,
     updateExpense
@@ -44,13 +44,14 @@ import { toast } from "sonner";
 import { CalendarIcon, Plus, Loader2, Pencil, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import Link from "next/link";
 
 export default function FinanceExpensePage() {
   const [loading, setLoading] = useState(true);
   const [groupedData, setGroupedData] = useState<Record<string, any[]>>({});
   const [categories, setCategories] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
-  const [rabItems, setRabItems] = useState<any[]>([]);
+  const [dailyRabs, setDailyRabs] = useState<any[]>([]);
 
   // Date Filter
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -69,7 +70,7 @@ export default function FinanceExpensePage() {
       amount: "" as any,
       paymentMethodId: "",
       categoryId: "",
-      rabItemId: "no-rab",
+      rabId: "no-rab", // or specific rab ID
       description: ""
   });
 
@@ -80,12 +81,12 @@ export default function FinanceExpensePage() {
               getExpensesGrouped(selectedDate),
               getExpenseCategories(),
               getPaymentMethods(),
-              getRabItemsGrouped()
+              getRabs(selectedDate) // Fetch RABs for the filtered date
           ]);
           setGroupedData(grouped);
           setCategories(cats);
           setPaymentMethods(pms);
-          setRabItems(rabs);
+          setDailyRabs(rabs);
       } catch (error) {
           toast.error("Failed to load data");
       } finally {
@@ -95,11 +96,44 @@ export default function FinanceExpensePage() {
 
   useEffect(() => {
       fetchData();
+      if(selectedDate) {
+          // Normalize the date to ensure consistent timezone handling
+          const normalized = new Date(selectedDate);
+          normalized.setHours(0, 0, 0, 0);
+          setFormData(prev => ({ ...prev, date: normalized }));
+      }
   }, [selectedDate]);
+
+  const handleRabSelect = (rabId: string) => {
+     if (rabId === "no-rab") {
+         setFormData(prev => ({ ...prev, rabId: "no-rab", amount: "", categoryId: "", description: "" }));
+         return;
+     }
+     const rab = dailyRabs.find(r => r.id === rabId);
+     if (rab) {
+         setFormData(prev => ({
+             ...prev,
+             rabId: rabId,
+             amount: rab.total,
+             categoryId: rab.rabCategory?.id || "", // Assuming ID matches? Or we need to find ExpenseCategory with same name?
+             // ExpenseCategory and RabCategory are distinct tables.
+             // We need to match by Name.
+             // UI has `categories` (ExpenseCategory). `rab` has `rabCategory`.
+             // Match by Name.
+             description: `Pembayaran RAB ${rab.rabCategory.name} (${new Date(rab.date).toISOString().split('T')[0]})`
+         }));
+         
+         // Auto-select category
+         const matchingCat = categories.find(c => c.name === rab.rabCategory.name);
+         if (matchingCat) {
+             setFormData(prev => ({ ...prev, categoryId: matchingCat.id }));
+         }
+     }
+  };
 
   const handleCreate = async () => {
       if (!formData.amount || !formData.categoryId || !formData.paymentMethodId) {
-          return toast.error("Please fill required fields (Amount, Category, Payment Method)");
+          return toast.error("Please fill required fields");
       }
 
       setSubmitting(true);
@@ -110,8 +144,8 @@ export default function FinanceExpensePage() {
                 amount: formData.amount,
                 paymentMethodId: formData.paymentMethodId,
                 categoryId: formData.categoryId,
-                rabItemId: formData.rabItemId === "no-rab" ? undefined : formData.rabItemId,
                 description: formData.description
+                // rabId update not supported currently
              });
              toast.success("Expense updated");
           } else {
@@ -120,15 +154,15 @@ export default function FinanceExpensePage() {
                 amount: formData.amount,
                 paymentMethodId: formData.paymentMethodId,
                 categoryId: formData.categoryId,
-                rabItemId: formData.rabItemId === "no-rab" ? undefined : formData.rabItemId,
+                rabId: formData.rabId === "no-rab" ? undefined : formData.rabId,
                 description: formData.description
              });
-            toast.success("Expense recorded successfully");
+             toast.success("Expense recorded successfully");
           }
           
           setDialogOpen(false);
           setEditingId(null);
-          setFormData(prev => ({ ...prev, amount: "", description: "" })); 
+          setFormData(prev => ({ ...prev, amount: "", description: "", rabId: "no-rab" })); 
           fetchData();
       } catch (error: any) {
           toast.error(error.message);
@@ -144,7 +178,7 @@ export default function FinanceExpensePage() {
           amount: item.amount,
           paymentMethodId: item.paymentMethodId,
           categoryId: item.categoryId,
-          rabItemId: item.rabItemId || "no-rab",
+          rabId: "no-rab", // Can't edit linked RAB easily
           description: item.description || ""
       });
       setDialogOpen(true);
@@ -174,9 +208,8 @@ export default function FinanceExpensePage() {
       <div className="flex justify-between items-center">
         <div>
             <h2 className="text-2xl font-bold tracking-tight">Pengeluaran (Expense)</h2>
-            <p className="text-muted-foreground">Manage expenses grouped by category.</p>
+            <p className="text-muted-foreground">Manage expenses and pay daily budgets.</p>
             
-             {/* Date Filter */}
              <div className="flex items-center gap-2 mt-4">
                 <Popover>
                     <PopoverTrigger asChild>
@@ -189,21 +222,13 @@ export default function FinanceExpensePage() {
                         <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && setSelectedDate(d)} initialFocus />
                     </PopoverContent>
                 </Popover>
-                {selectedDate ? (
-                    <Button variant="secondary" onClick={() => setSelectedDate(undefined)}>
-                        View All Data
-                    </Button>
-                ) : (
-                    <Button variant="default" onClick={() => setSelectedDate(new Date())}>
-                        Filter Today
-                    </Button>
-                )}
+                <Button variant="outline" onClick={() => setSelectedDate(new Date())}>Today</Button>
             </div>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
                 <Button variant="destructive" onClick={() => {
-                    setFormData({ ...formData, date: new Date(), amount: "", description: "" });
+                    setFormData({ ...formData, date: selectedDate || new Date(), amount: "", description: "", rabId: "no-rab" });
                     setEditingId(null);
                 }}>
                     <Plus className="mr-2 h-4 w-4" /> Record Expense
@@ -214,15 +239,6 @@ export default function FinanceExpensePage() {
                     <DialogTitle>{editingId ? "Edit Expense" : "Record New Expense"}</DialogTitle>
                 </DialogHeader>
 
-                {/* ... existing form content ... */}
-                
-                {/* We can rely on existing form content being largely untouched if we only replace header/trigger */}
-                
-                {/* BUT replace_file_content replaces contiguous blocks. The above replace only covers trigger/header. 
-                    I need to do the table separately or include form content in previous step? 
-                    I'll do Trigger/Header here. And Table separate. 
-                */}
-                
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2 flex flex-col">
@@ -239,9 +255,31 @@ export default function FinanceExpensePage() {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <div className="space-y-2">
+                        
+                        {!editingId && (
+                             <div className="space-y-2">
+                                <Label>Pay Daily RAB</Label>
+                                <Select value={formData.rabId} onValueChange={handleRabSelect}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select RAB to Pay" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="no-rab">-- Direct Expense --</SelectItem>
+                                        {dailyRabs.filter(r => r.status !== 'REALIZED').map(rab => (
+                                            <SelectItem key={rab.id} value={rab.id}>
+                                                {rab.rabCategory.name} ({formatCurrency(rab.total)})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+                         <div className="space-y-2">
                              <Label>Category</Label>
-                             <Select value={formData.categoryId} onValueChange={(v) => setFormData(prev => ({ ...prev, categoryId: v }))}>
+                             <Select value={formData.categoryId} onValueChange={(v) => setFormData(prev => ({ ...prev, categoryId: v }))} disabled={formData.rabId !== "no-rab"}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select Category" />
                                 </SelectTrigger>
@@ -249,25 +287,6 @@ export default function FinanceExpensePage() {
                                     {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                 </SelectContent>
                              </Select>
-                        </div>
-                    </div>
-
-                    <div className="space-y-4 border rounded-md p-4 bg-muted/20">
-                         <div className="space-y-2">
-                            <Label>Link to RAB Item (Optional)</Label>
-                            <Select value={formData.rabItemId} onValueChange={(v) => setFormData({...formData, rabItemId: v})}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Budget Item" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="no-rab">-- No Budget Link --</SelectItem>
-                                    {rabItems.map(item => (
-                                        <SelectItem key={item.id} value={item.id}>
-                                            {item.rabCategory?.name} - {item.name} ({formatCurrency(item.total)})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -289,8 +308,9 @@ export default function FinanceExpensePage() {
                                     value={formData.amount}
                                     placeholder="0"
                                     onChange={(e) => setFormData({...formData, amount: e.target.value === "" ? "" : parseInt(e.target.value)})}
+                                    readOnly={formData.rabId !== "no-rab"}
+                                    className={formData.rabId !== "no-rab" ? "bg-muted" : ""}
                                 />
-                                <p className="text-xs text-muted-foreground">Masukkan nominal penuh (misal: 10000 untuk 10rb)</p>
                             </div>
                         </div>
                         
@@ -311,7 +331,6 @@ export default function FinanceExpensePage() {
                     </Button>
                 </DialogFooter>
             </DialogContent>
-
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
@@ -323,13 +342,9 @@ export default function FinanceExpensePage() {
                         Are you sure you want to delete this expense record? This action cannot be undone.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter className="gap-2 sm:gap-0">
-                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                        Cancel
-                    </Button>
-                    <Button variant="destructive" onClick={executeDelete}>
-                        Delete Record
-                    </Button>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+                    <Button variant="destructive" onClick={executeDelete}>Delete Record</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -359,7 +374,7 @@ export default function FinanceExpensePage() {
                                        <TableRow>
                                            <TableHead className="w-[150px]">Date</TableHead>
                                            <TableHead>Description</TableHead>
-                                           <TableHead>RAB Link</TableHead>
+                                           <TableHead>Related RAB</TableHead>
                                            <TableHead>Method</TableHead>
                                            <TableHead className="text-right">Amount</TableHead>
                                            <TableHead className="w-[100px]"></TableHead>
@@ -368,7 +383,7 @@ export default function FinanceExpensePage() {
                                    <TableBody>
                                        {categoryData.length === 0 ? (
                                            <TableRow>
-                                               <TableCell colSpan={5} className="text-center text-muted-foreground h-20">No expenses for {category.name}</TableCell>
+                                               <TableCell colSpan={6} className="text-center text-muted-foreground h-20">No expenses for {category.name}</TableCell>
                                            </TableRow>
                                        ) : (
                                            categoryData.map((item: any) => (
@@ -376,9 +391,15 @@ export default function FinanceExpensePage() {
                                                    <TableCell>{format(new Date(item.date), "dd/MM/yyyy")}</TableCell>
                                                    <TableCell>{item.description || "-"}</TableCell>
                                                    <TableCell>
-                                                       {item.rabItem ? (
+                                                       {item.rab ? (
                                                             <div className="flex flex-col text-xs">
-                                                                <span className="font-semibold text-muted-foreground">{item.rabItem.name}</span>
+                                                                <span className="font-semibold text-muted-foreground">RAB Harian</span>
+                                                                <Link 
+                                                                    href={`/dashboard/finance/rab?date=${new Date(item.rab.date).toISOString().split('T')[0]}`}
+                                                                    className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
+                                                                >
+                                                                    View Details →
+                                                                </Link>
                                                             </div>
                                                        ) : "-"}
                                                    </TableCell>
@@ -392,6 +413,7 @@ export default function FinanceExpensePage() {
                                                    </TableCell>
                                                    <TableCell>
                                                        <div className="flex items-center justify-end gap-2">
+                                                           {/* Disable Edit if linked to RAB to prevent consistency issues? Or allowed? For now allow. */}
                                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEdit(item)}>
                                                                <Pencil className="h-4 w-4" />
                                                            </Button>
@@ -403,13 +425,12 @@ export default function FinanceExpensePage() {
                                                </TableRow>
                                            ))
                                        )}
-                                       {/* Subtotal */ }
-                                       {categoryData.length > 0 && (
-                                           <TableRow className="bg-muted/50 font-bold">
-                                               <TableCell colSpan={4} className="text-right">Subtotal {category.name}</TableCell>
-                                               <TableCell className="text-right text-rose-700">{formatCurrency(categoryTotal)}</TableCell>
-                                           </TableRow>
-                                       )}
+                                        {categoryData.length > 0 && (
+                                            <TableRow className="bg-muted/50 font-bold">
+                                                <TableCell colSpan={4} className="text-right">Subtotal {category.name}</TableCell>
+                                                <TableCell className="text-right text-rose-700">{formatCurrency(categoryTotal)}</TableCell>
+                                            </TableRow>
+                                        )}
                                    </TableBody>
                                </Table>
                           </CardContent>

@@ -1,0 +1,16 @@
+
+EXPENSE CATEGORIES:
+- Konsumsi (cmktu5s3d000blegq7gn3fgn0)
+- Perlengkapan (cmktu5scd000clegq7w9e3z56)
+- Transportasi (cmktu5sh5000dlegqflnpppxd)
+- Cetak/Print (cmktu5slx000elegqqtcvisf8)
+- Obat-obatan (cmktu5src000flegqgy3new54)
+- Lainnya (cmktu5sw3000glegq6pz4xm8b)
+
+RAB CATEGORIES:
+- Proker (cmktu5t6y000hlegqnithbyif)
+- Konsumsi (cmktu5tel000ilegqogrojaa2)
+- Transportasi (cmktu5tjd000jlegqdslrnd6g)
+- Posko (cmktu5to3000klegqd6wm9626)
+- Lainnya (cmktu5ttk000llegqe9ndbn17)
+  

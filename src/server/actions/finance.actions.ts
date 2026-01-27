@@ -92,17 +92,18 @@ async function getOrCreateTodayFinanceDay() {
 }
 
 // --- INCOME ---
-// --- INCOME ---
 export async function getIncomesGrouped(date?: Date) {
     await checkTreasurerPermission();
     
     // Build where clause
     const where: any = {};
     if (date) {
-        const start = new Date(date);
-        start.setHours(0,0,0,0);
-        const end = new Date(date);
-        end.setHours(23,59,59,999);
+        // Use full day range in UTC for DateTime fields
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        const start = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+        const end = new Date(Date.UTC(year, month, day, 23, 59, 59, 999));
         
         where.date = {
             gte: start,
@@ -273,7 +274,7 @@ export async function getExpensesGrouped(date?: Date) {
     const expenses = await prisma.expense.findMany({
         where,
         orderBy: { date: 'desc' },
-        include: { category: true, rabItem: true, paymentMethod: true }
+        include: { category: true, rab: true, paymentMethod: true }
     });
 
     const grouped: Record<string, typeof expenses> = {};
@@ -289,20 +290,35 @@ export async function getExpensesGrouped(date?: Date) {
 export async function createExpense(data: {
     date: Date, 
     amount: number, 
-    paymentMethodId: string,
-    description?: string,
+    paymentMethodId: string, 
+    description?: string, 
     categoryId: string, 
-    rabItemId?: string
+    rabId?: string
 }) {
     const user = await checkTreasurerPermission();
     const fd = await getOrCreateTodayFinanceDay();
 
-    const expense = await prisma.expense.create({
-        data: {
-            ...data,
-            financeDayId: fd.id,
-            createdById: user.id
+    // Validate RAB linking
+    if (data.rabId) {
+        // Optional: Check existence. Prisma will throw FK error anyway.
+    }
+
+    const expense = await prisma.$transaction(async (tx) => {
+        const exp = await tx.expense.create({
+            data: {
+                ...data,
+                financeDayId: fd.id,
+                createdById: user.id
+            }
+        });
+
+        if (data.rabId) {
+            await tx.rab.update({
+                where: { id: data.rabId },
+                data: { status: 'REALIZED' }
+            });
         }
+        return exp;
     });
 
     revalidatePath("/dashboard/finance/expense");
@@ -311,23 +327,88 @@ export async function createExpense(data: {
 }
 
 // --- RAB ---
-export async function getRabs() {
+export async function getRabs(date?: Date) {
     await checkTreasurerPermission();
+    
+    const where: any = {};
+    if (date) {
+        // Create date in UTC for @db.Date comparison
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        const utcDate = new Date(Date.UTC(year, month, day));
+        
+        where.date = utcDate;
+    }
+
     return prisma.rab.findMany({
+        where,
         include: { 
-            items: {
-                include: { rabCategory: true }
-            } 
+            items: true,
+            rabCategory: true,
+            expense: true
         },
-        orderBy: { year: 'desc' }
+        orderBy: { rabCategory: { name: 'asc' } }
     });
+}
+
+export async function createRab(data: { date: Date, rabCategoryId: string }) {
+    await checkTreasurerPermission();
+    
+    // Convert local date to UTC date for @db.Date storage
+    const year = data.date.getFullYear();
+    const month = data.date.getMonth();
+    const day = data.date.getDate();
+    const utcDate = new Date(Date.UTC(year, month, day));
+
+    const existing = await prisma.rab.findUnique({
+        where: {
+            date_rabCategoryId: {
+                date: utcDate,
+                rabCategoryId: data.rabCategoryId
+            }
+        }
+    });
+
+    if (existing) throw new Error("RAB for this category and date already exists.");
+
+    const rab = await prisma.rab.create({
+        data: {
+            date: utcDate,
+            rabCategoryId: data.rabCategoryId,
+            status: "DRAFT",
+            total: 0
+        }
+    });
+    
+    revalidatePath("/dashboard/finance/rab");
+    return rab;
+}
+
+export async function deleteRab(id: string) {
+    await checkTreasurerPermission();
+    
+    // Check status
+    const rab = await prisma.rab.findUnique({ 
+        where: { id },
+        include: { expense: true }
+    });
+
+    if (!rab) throw new Error("Budget plan not found");
+
+    if (rab.status === 'REALIZED' || rab.expense) {
+         throw new Error("Cannot delete a realized/paid Budget Plan.");
+    }
+
+    await prisma.rab.delete({ where: { id } });
+    revalidatePath("/dashboard/finance/rab");
 }
 
 // Helper to get grouped RAB items (e.g., for Expense selection)
 export async function getRabItemsGrouped() {
     await checkTreasurerPermission();
     const items = await prisma.rabItem.findMany({
-        include: { rab: true, rabCategory: true },
+        include: { rab: { include: { rabCategory: true } } },
         orderBy: { name: 'asc' }
     });
     
@@ -335,9 +416,10 @@ export async function getRabItemsGrouped() {
     return items;
 }
 
+
 export async function createRabItem(data: {
     rabId: string, 
-    rabCategoryId: string,
+    // rabCategoryId: string, // Removed
     name: string, 
     quantity: number, 
     unit: string,
@@ -345,12 +427,24 @@ export async function createRabItem(data: {
 }) {
     await checkTreasurerPermission();
     const total = data.quantity * data.unitPrice;
-    const item = await prisma.rabItem.create({
-        data: {
-            ...data,
-            total
-        }
-    });
+    
+    const [item] = await prisma.$transaction([
+        prisma.rabItem.create({
+            data: {
+                rabId: data.rabId,
+                name: data.name,
+                quantity: data.quantity,
+                unit: data.unit,
+                unitPrice: data.unitPrice,
+                total
+            }
+        }),
+        prisma.rab.update({
+            where: { id: data.rabId },
+            data: { total: { increment: total } }
+        })
+    ]);
+    
     revalidatePath("/dashboard/finance/rab");
     return item;
 }
@@ -433,9 +527,29 @@ export async function updateIncome(id: string, data: {
 // EXPENSE
 export async function deleteExpense(id: string) {
     await checkTreasurerPermission();
-    await prisma.expense.delete({ where: { id } });
+    
+    // Check if expense has linked RAB
+    const expense = await prisma.expense.findUnique({
+        where: { id },
+        include: { rab: true }
+    });
+    
+    // Transaction delete
+    await prisma.$transaction(async (tx) => {
+        if (expense?.rabId) {
+             await tx.rab.update({
+                 where: { id: expense.rabId },
+                 data: { status: 'DRAFT' } // Revert to planned/draft
+             });
+        }
+        
+        await tx.expense.delete({ where: { id } });
+    });
+
     revalidatePath("/dashboard/finance/expense");
     revalidatePath("/dashboard/finance/overview");
+    // Also revalidate RAB page because status changed
+    revalidatePath("/dashboard/finance/rab");
 }
 
 export async function updateExpense(id: string, data: {
@@ -443,8 +557,7 @@ export async function updateExpense(id: string, data: {
     amount?: number, 
     paymentMethodId?: string, 
     description?: string, 
-    categoryId?: string, 
-    rabItemId?: string
+    categoryId?: string
 }) {
     await checkTreasurerPermission();
     await prisma.expense.update({
@@ -455,17 +568,32 @@ export async function updateExpense(id: string, data: {
     revalidatePath("/dashboard/finance/overview");
 }
 
+
 // RAB ITEMS
 export async function deleteRabItem(id: string) {
     await checkTreasurerPermission();
     
-    // Check if used in Expense
-    const usageCount = await prisma.expense.count({ where: { rabItemId: id } });
-    if (usageCount > 0) {
-        throw new Error(`Cannot delete: Item is used in ${usageCount} expense records.`);
+    // Check item and Rab status
+    const item = await prisma.rabItem.findUnique({ where: { id } });
+    if (!item) throw new Error("Item not found");
+
+    const rab = await prisma.rab.findUnique({ 
+        where: { id: item.rabId },
+        include: { expense: true }
+    });
+
+    if (rab?.status === 'REALIZED' || rab?.expense) {
+         throw new Error("Cannot delete item from a Realized (Paid) RAB.");
     }
 
-    await prisma.rabItem.delete({ where: { id } });
+    await prisma.$transaction([
+        prisma.rabItem.delete({ where: { id } }),
+        prisma.rab.update({ 
+            where: { id: item.rabId },
+            data: { total: { decrement: item.total } }
+        })
+    ]);
+
     revalidatePath("/dashboard/finance/rab");
 }
 
@@ -473,29 +601,40 @@ export async function updateRabItem(id: string, data: {
     name?: string, 
     quantity?: number, 
     unit?: string,
-    unitPrice?: number,
-    rabCategoryId?: string
+    unitPrice?: number
 }) {
     await checkTreasurerPermission();
     
-    // Recalculate total if qty/price changes
-    let updateData: any = { ...data };
+    const item = await prisma.rabItem.findUnique({ where: { id } });
+    if (!item) throw new Error("RAB Item not found");
     
-    if (data.quantity !== undefined || data.unitPrice !== undefined) {
-         // We need current values if only one is updated, but simpler to expect both or fetch. 
-         // For efficiency let's assume UI sends both or we fetch.
-         // Let's fetch to be safe.
-         const current = await prisma.rabItem.findUnique({ where: { id } });
-         if (!current) throw new Error("RAB Item not found");
-         
-         const qty = data.quantity ?? current.quantity;
-         const price = data.unitPrice ?? current.unitPrice;
-         updateData.total = qty * price;
+    // Check locked status
+    const rab = await prisma.rab.findUnique({ where: { id: item.rabId }, include: { expense: true } });
+    if (rab?.status === 'REALIZED' || rab?.expense) {
+         throw new Error("Cannot modify item of a Realized (Paid) RAB.");
     }
 
-    await prisma.rabItem.update({
-        where: { id },
-        data: updateData
-    });
+    let updateData: any = { ...data };
+    let totalDiff = 0;
+
+    if (data.quantity !== undefined || data.unitPrice !== undefined) {
+         const qty = data.quantity ?? item.quantity;
+         const price = data.unitPrice ?? item.unitPrice;
+         const newTotal = qty * price;
+         totalDiff = newTotal - item.total;
+         updateData.total = newTotal;
+    }
+
+    await prisma.$transaction([
+        prisma.rabItem.update({
+             where: { id },
+             data: updateData
+        }),
+        prisma.rab.update({
+            where: { id: item.rabId },
+            data: { total: { increment: totalDiff } }
+        })
+    ]);
+    
     revalidatePath("/dashboard/finance/rab");
 }

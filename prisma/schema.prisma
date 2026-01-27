@@ -293,6 +293,7 @@ model Income {
   @@map("incomes")
 }
 
+
 model Expense {
   id          String   @id @default(cuid())
   date        DateTime
@@ -306,8 +307,8 @@ model Expense {
   paymentMethodId String        @map("payment_method_id")
   paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id])
 
-  rabItemId String?  @map("rab_item_id")
-  rabItem   RabItem? @relation(fields: [rabItemId], references: [id])
+  rabId String? @unique @map("rab_id")
+  rab   Rab?    @relation(fields: [rabId], references: [id])
 
   financeDayId String?     @map("finance_day_id")
   financeDay   FinanceDay? @relation(fields: [financeDayId], references: [id])
@@ -320,18 +321,28 @@ model Expense {
 
 model Rab {
   id        String    @id @default(cuid())
-  title     String // e.g. "RAB KKM 2026"
-  year      Int
+  date      DateTime  @db.Date
+  
+  rabCategoryId String      @map("rab_category_id")
+  rabCategory   RabCategory @relation(fields: [rabCategoryId], references: [id])
+
   items     RabItem[]
+
+  total     Int       @default(0)
+  status    String    @default("DRAFT") // DRAFT, REALIZED
+
+  expense   Expense?
+
   createdAt DateTime  @default(now()) @map("created_at")
 
+  @@unique([date, rabCategoryId])
   @@map("rabs")
 }
 
 model RabCategory {
   id        String    @id @default(cuid())
   name      String    @unique // e.g. "Konsumsi", "Transportasi", "Proker"
-  items     RabItem[]
+  rabs      Rab[]
   createdAt DateTime  @default(now()) @map("created_at")
 
   @@map("rab_categories")
@@ -342,16 +353,11 @@ model RabItem {
   rabId         String      @map("rab_id")
   rab           Rab         @relation(fields: [rabId], references: [id], onDelete: Cascade)
   
-  rabCategoryId String      @map("rab_category_id")
-  rabCategory   RabCategory @relation(fields: [rabCategoryId], references: [id])
-
   name      String
   quantity  Int
   unit      String // e.g. "Paket", "Liter"
   unitPrice Int    @map("unit_price")
   total     Int // quantity * unitPrice
-
-  expenses Expense[]
 
   createdAt DateTime @default(now()) @map("created_at")
 
