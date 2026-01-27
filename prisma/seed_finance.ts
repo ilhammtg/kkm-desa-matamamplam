@@ -77,52 +77,8 @@ export async function seedFinance(prisma: PrismaClient) {
       rabCatMap.set(name, cat.id);
   }
 
-  const rab = await prisma.rab.create({
-    data: {
-      title: "RAB KKM Tahap 2",
-      year: 2026,
-      /*
-      items: {
-        create: [
-          { 
-              name: "Spanduk Kegiatan", 
-              quantity: 2, 
-              unit: "Buah",
-              unitPrice: 50000, 
-              total: 100000, 
-              rabCategoryId: rabCatMap.get("Proker")! 
-          },
-          { 
-              name: "Cat Tembok Desa", 
-              quantity: 5, 
-              unit: "Galon",
-              unitPrice: 120000, 
-              total: 600000, 
-              rabCategoryId: rabCatMap.get("Posko")! 
-          },
-          { 
-              name: "Konsumsi Rapat Rutin", 
-              quantity: 10,
-              unit: "Paket",
-              unitPrice: 100000, 
-              total: 1000000, 
-              rabCategoryId: rabCatMap.get("Konsumsi")! 
-          },
-          { 
-              name: "Obat P3K", 
-              quantity: 1, 
-              unit: "Kotak",
-              unitPrice: 200000, 
-              total: 200000, 
-              rabCategoryId: rabCatMap.get("Lainnya")! 
-          },
-        ]
-      }
-      */
-    },
-    include: { items: true }
-  });
-  console.log("RAB seeded.");
+  // 4. RAB Categories created, RAB items should be created via admin UI
+  console.log("RAB categories seeded. RAB items should be created via admin interface.");
 
   // 5. Create Finance Day (Today)
   const today = new Date();
